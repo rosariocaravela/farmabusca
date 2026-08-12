@@ -1,0 +1,118 @@
+const { Pharmacy, Medicine, User, Category } = require('../models');
+const { uploadImage } = require('../services/cloudinaryService');
+
+const getImageUrlFromRequest = async (req) => {
+  let imageUrl = req.body.image || req.body.imageUrl;
+  // single file under 'image'
+  if (req.files && req.files.image && req.files.image[0] && req.files.image[0].buffer) {
+    try {
+      const result = await uploadImage(req.files.image[0].buffer, 'pharmacies');
+      if (result && result.secure_url) imageUrl = result.secure_url;
+    } catch (err) {
+      console.error('Cloudinary upload error', err);
+    }
+  }
+  return imageUrl;
+};
+
+const createProfile = async (req, res, next) => {
+  try {
+    const existing = await Pharmacy.findOne({ where: { userId: req.user.id } });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Farmácia já existe para este utilizador' });
+    }
+
+    const image = await getImageUrlFromRequest(req);
+    // handle documents uploads
+    let documentsMeta = [];
+    if (req.files && req.files.documents && req.files.documents.length) {
+      for (const file of req.files.documents) {
+        try {
+          const r = await uploadImage(file.buffer, 'pharmacy_documents');
+          documentsMeta.push({ originalName: file.originalname, url: r?.secure_url || null });
+        } catch (err) {
+          console.error('Document upload error', err);
+        }
+      }
+    }
+
+    const pharmacy = await Pharmacy.create({ ...req.body, image, userId: req.user.id, approved: false, documents: documentsMeta });
+    res.status(201).json({ success: true, message: 'Perfil da farmácia criado', data: pharmacy });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateProfile = async (req, res, next) => {
+  try {
+    const pharmacy = await Pharmacy.findOne({ where: { userId: req.user.id } });
+    if (!pharmacy) {
+      return res.status(404).json({ success: false, message: 'Farmácia não encontrada' });
+    }
+
+    const image = await getImageUrlFromRequest(req);
+    // handle documents uploads (append)
+    let documentsMeta = pharmacy.documents || [];
+    if (req.files && req.files.documents && req.files.documents.length) {
+      for (const file of req.files.documents) {
+        try {
+          const r = await uploadImage(file.buffer, 'pharmacy_documents');
+          documentsMeta.push({ originalName: file.originalname, url: r?.secure_url || null });
+        } catch (err) {
+          console.error('Document upload error', err);
+        }
+      }
+    }
+
+    await pharmacy.update({ ...req.body, ...(image ? { image } : {}), documents: documentsMeta });
+    res.json({ success: true, message: 'Perfil atualizado', data: pharmacy });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMyPharmacy = async (req, res, next) => {
+  try {
+    const pharmacy = await Pharmacy.findOne({ where: { userId: req.user.id } });
+    res.json({ success: true, message: 'Farmácia carregada', data: pharmacy });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const listMyMedicines = async (req, res, next) => {
+  try {
+    const pharmacy = await Pharmacy.findOne({ where: { userId: req.user.id } });
+    if (!pharmacy) {
+      return res.status(404).json({ success: false, message: 'Farmácia não encontrada' });
+    }
+
+    const medicines = await Medicine.findAll({ where: { pharmacyId: pharmacy.id }, include: [Category] });
+    res.json({ success: true, message: 'Medicamentos da farmácia', data: medicines });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const listPharmacies = async (req, res, next) => {
+  try {
+    const pharmacies = await Pharmacy.findAll({ where: { approved: true }, include: [User] });
+    res.json({ success: true, message: 'Farmácias listadas', data: pharmacies });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getPharmacyById = async (req, res, next) => {
+  try {
+    const pharmacy = await Pharmacy.findByPk(req.params.id, { include: [User] });
+    if (!pharmacy) {
+      return res.status(404).json({ success: false, message: 'Farmácia não encontrada' });
+    }
+    res.json({ success: true, message: 'Farmácia carregada', data: pharmacy });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { createProfile, updateProfile, getMyPharmacy, listMyMedicines, listPharmacies, getPharmacyById };
