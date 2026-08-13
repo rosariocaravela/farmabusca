@@ -84,6 +84,11 @@ const Pharmacy = sequelize.define('Pharmacy', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
+  views: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
   suspended: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,

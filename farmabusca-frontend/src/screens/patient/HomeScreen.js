@@ -1,124 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import SearchBar from '../../components/SearchBar';
-import CategoryCard from '../../components/CategoryCard';
 import MedicineCard from '../../components/MedicineCard';
 import PharmacyCard from '../../components/PharmacyCard';
+import { ErrorState, LoadingSkeleton, EmptyState } from '../../components/ScreenState';
 import { useAuth } from '../../context/AuthContext';
-import { getPharmacies, getMedicines } from '../../services/api';
+import { getPharmacies, getMedicines, addFavorite } from '../../services/api';
+import { colors, radius, shadows, spacing, typography } from '../../theme';
 
-export default function HomeScreen() {
-  const navigation = useNavigation();
-  const { user } = useAuth();
-
-  const [popularMedicines, setPopularMedicines] = useState([]);
-  const [pharmacies, setPharmacies] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    Promise.all([getMedicines(), getPharmacies()])
-      .then(([medRes, phRes]) => {
-        if (!mounted) return;
-        const meds = (medRes.data || []).map((m) => ({
-          id: m.id,
-          name: m.name,
-          description: m.description,
-          price: m.price,
-          image: m.image || m.imageUrl || null,
-          stock: m.stockStatus === 'AVAILABLE' ? 'Disponível' : m.stockStatus === 'LOW_STOCK' ? 'Stock baixo' : 'Indisponível',
-          pharmacy: m.Pharmacy?.name || m.pharmacy || '',
-        }));
-        setPopularMedicines(meds.slice(0, 5));
-        setPharmacies(phRes.data || []);
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        setError(err.message || 'Erro ao buscar dados');
-      })
-      .finally(() => mounted && setLoading(false));
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 20 }}>
-      <View style={styles.heroCard}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.greeting}>Olá, {user?.name || 'utilizador'}</Text>
-          <Text style={styles.prompt}>Encontre o que precisa com facilidade.</Text>
-          <Text style={styles.helper}>Pesquise medicamentos e veja farmácias próximas em poucos segundos.</Text>
-        </View>
-        <View style={styles.avatar}>
-          <Text style={{ color: '#FFF', fontWeight: '800' }}>FB</Text>
-        </View>
-      </View>
-
-      <View style={{ marginTop: 6 }}>
-        <SearchBar placeholder="Pesquisar medicamento..." />
-      </View>
-
-      <View style={styles.categoriesRow}>
-        <CategoryCard title="Medicamentos" icon="medkit-outline" color="#2F9E5D" onPress={() => navigation.navigate('Pesquisar')} />
-        <CategoryCard title="Farmácias" icon="storefront-outline" color="#4C8DFF" onPress={() => navigation.navigate('Favoritos')} />
-        <CategoryCard title="Favoritos" icon="heart-outline" color="#F08A5D" onPress={() => navigation.navigate('Favoritos')} />
-        <CategoryCard title="Localização" icon="location-outline" color="#6C63FF" />
-      </View>
-
-      <Text style={styles.sectionTitle}>Mais procurados</Text>
-      {loading ? (
-        <Text>Carregando medicamentos...</Text>
-      ) : error ? (
-        <Text>{error}</Text>
-      ) : popularMedicines.length === 0 ? (
-        <Text>Nenhum medicamento encontrado.</Text>
-      ) : (
-        popularMedicines.map((item) => (
-          <MedicineCard key={item.id} item={item} onPress={() => navigation.navigate('MedicineDetails', { item })} />
-        ))
-      )}
-
-      <Text style={styles.sectionTitle}>Farmácias próximas</Text>
-      {loading ? (
-        <Text>Carregando farmácias...</Text>
-      ) : error ? (
-        <Text>{error}</Text>
-      ) : pharmacies.length === 0 ? (
-        <Text>Nenhuma farmácia encontrada.</Text>
-      ) : (
-        pharmacies.map((item) => (
-          <PharmacyCard key={item.id} item={item} onPress={() => navigation.navigate('PharmacyDetails', { item })} />
-        ))
-      )}
-    </ScrollView>
-  );
+const shortcuts=[{label:'Pesquisar',icon:'search-outline',screen:'Pesquisar'},{label:'Favoritos',icon:'heart-outline',screen:'Favoritos'},{label:'Perfil',icon:'person-outline',screen:'Perfil'}];
+export default function HomeScreen({ navigation }) {
+  const { user }=useAuth(); const[medicines,setMedicines]=useState([]); const[pharmacies,setPharmacies]=useState([]); const[loading,setLoading]=useState(true); const[refreshing,setRefreshing]=useState(false); const[error,setError]=useState('');
+  const load=useCallback(async(refresh=false)=>{refresh?setRefreshing(true):setLoading(true);setError('');try{const[medRes,phRes]=await Promise.all([getMedicines(),getPharmacies()]);setMedicines((medRes.data||[]).slice(0,4));setPharmacies((phRes.data||[]).slice(0,3));}catch(e){setError(e.response?'Não foi possível carregar as informações.':'Sem ligação à Internet. Verifique a rede e tente novamente.')}finally{setLoading(false);setRefreshing(false)}},[]);
+  useEffect(()=>{load()},[load]);
+  const save=async id=>{try{await addFavorite(id)}catch(e){if(e.response?.status!==400)setError('Não foi possível guardar o medicamento.')}};
+  return <ScrollView style={styles.container} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} tintColor={colors.primary}/> }>
+    <View style={styles.welcome}><View style={{flex:1}}><Text style={styles.greeting}>Olá, {String(user?.name||'utilizador').split(' ')[0]}</Text><Text style={styles.prompt}>Como podemos ajudar hoje?</Text></View><View style={styles.avatar}><Text style={styles.avatarText}>{String(user?.name||'FB').slice(0,2).toUpperCase()}</Text></View></View>
+    <TouchableOpacity activeOpacity={.9} onPress={()=>navigation.navigate('Pesquisar')}><View pointerEvents="none"><SearchBar placeholder="Pesquisar medicamento..." /></View></TouchableOpacity>
+    <View style={styles.shortcuts}>{shortcuts.map(x=><TouchableOpacity key={x.label} style={styles.shortcut} onPress={()=>navigation.navigate(x.screen)}><View style={styles.shortcutIcon}><Ionicons name={x.icon} size={22} color={colors.primary}/></View><Text style={styles.shortcutText}>{x.label}</Text></TouchableOpacity>)}</View>
+    <View style={styles.notice}><Ionicons name="information-circle-outline" size={23} color={colors.support}/><Text style={styles.noticeText}>Consulte um profissional de saúde antes de utilizar qualquer medicamento.</Text></View>
+    {error&&!medicines.length&&!pharmacies.length?<ErrorState message={error} onRetry={load}/>:<>{loading?<LoadingSkeleton rows={4}/>:<><Section title="Medicamentos disponíveis" action="Ver todos" onPress={()=>navigation.navigate('Pesquisar')}/>{medicines.length?medicines.map(item=><MedicineCard key={item.id} item={item} onFavorite={()=>save(item.id)} onPress={()=>navigation.navigate('MedicineDetails',{item})}/>):<EmptyState title="Nenhum medicamento disponível" message="Volte a tentar mais tarde."/>}<Section title="Farmácias disponíveis"/>{pharmacies.length?pharmacies.map(item=><PharmacyCard key={item.id} item={item} onPress={()=>navigation.navigate('PharmacyDetails',{item})}/>):<EmptyState title="Nenhuma farmácia disponível" message="As farmácias aprovadas aparecerão aqui."/>}</>}</>}
+  </ScrollView>;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5FAF7' },
-  heroCard: {
-    backgroundColor: '#2F9E5D',
-    borderRadius: 24,
-    padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
-  },
-  greeting: { color: '#ECFDF3', fontSize: 13, opacity: 0.9 },
-  prompt: { color: '#FFFFFF', fontSize: 21, fontWeight: '800', marginTop: 4 },
-  helper: { color: '#EAF8EE', marginTop: 6, fontSize: 13, lineHeight: 20 },
-  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFFFFF33', justifyContent: 'center', alignItems: 'center' },
-  categoriesRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 18 },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#233447', marginTop: 16, marginBottom: 10 },
-});
+function Section({title,action,onPress}){return <View style={styles.section}><Text style={styles.sectionTitle}>{title}</Text>{action?<TouchableOpacity onPress={onPress}><Text style={styles.sectionAction}>{action}</Text></TouchableOpacity>:null}</View>}
+const styles=StyleSheet.create({container:{flex:1,backgroundColor:colors.background},content:{padding:spacing.xl,paddingBottom:40},welcome:{flexDirection:'row',alignItems:'center',marginBottom:18},greeting:{...typography.caption,color:colors.primaryDark,fontWeight:'700'},prompt:{...typography.title,color:colors.text,marginTop:3},avatar:{width:48,height:48,borderRadius:24,backgroundColor:colors.primaryLight,alignItems:'center',justifyContent:'center'},avatarText:{color:colors.primaryDark,fontWeight:'800'},shortcuts:{flexDirection:'row',gap:10,marginVertical:18},shortcut:{flex:1,alignItems:'center',backgroundColor:colors.surface,paddingVertical:14,borderRadius:radius.lg,borderWidth:1,borderColor:colors.border,...shadows.card},shortcutIcon:{width:42,height:42,borderRadius:14,backgroundColor:colors.primaryLight,alignItems:'center',justifyContent:'center'},shortcutText:{fontSize:12,color:colors.text,fontWeight:'700',marginTop:7},notice:{flexDirection:'row',gap:10,backgroundColor:'#EFF6FF',borderRadius:radius.md,padding:14,marginBottom:10},noticeText:{...typography.caption,color:'#1E3A8A',flex:1},section:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:20,marginBottom:10},sectionTitle:{...typography.heading,color:colors.text},sectionAction:{color:colors.primary,fontWeight:'700',fontSize:13}});

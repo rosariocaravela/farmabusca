@@ -1,32 +1,12 @@
-import React, { useEffect } from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import BrandMark from '../components/BrandMark';
+import { colors, typography } from '../theme';
 
 export default function SplashScreen() {
-  const navigation = useNavigation();
-
-  useEffect(() => {
-    const timer = setTimeout(() => navigation.replace('Onboarding'), 1800);
-    return () => clearTimeout(timer);
-  }, [navigation]);
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.logoBox}>
-        <Text style={styles.logo}>💊</Text>
-      </View>
-      <Text style={styles.title}>FarmaBusca</Text>
-      <Text style={styles.subtitle}>Encontre medicamentos perto de si</Text>
-      <Text style={styles.loading}>A carregar...</Text>
-    </View>
-  );
+  const navigation = useNavigation(); const opacity = useRef(new Animated.Value(0)).current; const scale = useRef(new Animated.Value(.9)).current;
+  useEffect(() => { Animated.parallel([Animated.timing(opacity,{toValue:1,duration:600,useNativeDriver:true}),Animated.spring(scale,{toValue:1,useNativeDriver:true})]).start(); const timer=setTimeout(()=>navigation.replace('Onboarding'),1600); return()=>clearTimeout(timer); }, [navigation, opacity, scale]);
+  return <View style={styles.container}><Animated.View style={{ alignItems:'center', opacity, transform:[{scale}] }}><BrandMark inverse /><Text style={styles.subtitle}>Medicamentos perto de si</Text></Animated.View><Text style={styles.footer}>Saúde • confiança • proximidade</Text></View>;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1976D2' },
-  logoBox: { width: 100, height: 100, borderRadius: 24, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  logo: { fontSize: 48 },
-  title: { fontSize: 32, color: '#FFF', fontWeight: '800' },
-  subtitle: { fontSize: 16, color: '#EAF2FF', marginTop: 8 },
-  loading: { marginTop: 20, color: '#FFF', opacity: 0.9 },
-});
+const styles=StyleSheet.create({container:{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:colors.primaryDark},subtitle:{...typography.body,color:'#DCFCE7',marginTop:16},footer:{position:'absolute',bottom:48,color:'#BBF7D0',fontSize:13}});

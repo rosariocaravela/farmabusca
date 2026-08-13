@@ -1,0 +1,8 @@
+import React from 'react';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import BrandMark from './BrandMark';
+import { colors, spacing, typography } from '../theme';
+export default function AuthLayout({ title, subtitle, children, navigation, showBack=false }){const handleBack=()=>navigation.canGoBack()?navigation.goBack():navigation.navigate('Login');return <SafeAreaView style={styles.safe}><KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>{showBack?<TouchableOpacity style={styles.back} onPress={handleBack} accessibilityLabel="Voltar"><Ionicons name="arrow-back" size={22} color={colors.text}/></TouchableOpacity>:null}<BrandMark/><View style={styles.heading}><Text style={styles.title}>{title}</Text><Text style={styles.subtitle}>{subtitle}</Text></View>{children}</ScrollView></KeyboardAvoidingView></SafeAreaView>}
+const styles=StyleSheet.create({safe:{flex:1,backgroundColor:colors.background},content:{flexGrow:1,justifyContent:'center',padding:spacing.xxl,paddingBottom:48},back:{position:'absolute',top:24,left:24,width:44,height:44,borderRadius:14,backgroundColor:colors.surface,alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:colors.border},heading:{marginTop:32,marginBottom:24},title:{...typography.title,color:colors.text},subtitle:{...typography.body,color:colors.textSecondary,marginTop:6}});

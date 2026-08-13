@@ -1,45 +1,6 @@
-import React from 'react';
-import { View, TextInput, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
-export default function SearchBar({ value, onChangeText, placeholder = 'Pesquisar...', onFocus, onSubmitEditing }) {
-  return (
-    <View style={styles.container}>
-      <Ionicons name="search-outline" size={20} color="#2F9E5D" />
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#8D9EA6"
-        style={styles.input}
-        onFocus={onFocus}
-        returnKeyType="search"
-        onSubmitEditing={onSubmitEditing}
-      />
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5FBF7',
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: '#E3F1E7',
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
-  },
-  input: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 15,
-    color: '#263238',
-  },
-});
+import React,{useState} from 'react';
+import {View,TextInput,StyleSheet,TouchableOpacity} from 'react-native';
+import {Ionicons} from '@expo/vector-icons';
+import {colors,radius,shadows} from '../theme';
+export default function SearchBar({value,onChangeText,placeholder='Pesquisar...',onFocus,onSubmitEditing}){const[focused,setFocused]=useState(false);return <View style={[styles.container,focused&&styles.focused]}><View style={styles.icon}><Ionicons name="search" size={18} color={colors.primaryDark}/></View><TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.textSecondary} style={styles.input} onFocus={e=>{setFocused(true);onFocus?.(e)}} onBlur={()=>setFocused(false)} returnKeyType="search" onSubmitEditing={onSubmitEditing}/>{value?<TouchableOpacity onPress={()=>onChangeText?.('')} hitSlop={8} accessibilityLabel="Limpar pesquisa"><Ionicons name="close-circle" size={20} color={colors.textSecondary}/></TouchableOpacity>:null}</View>}
+const styles=StyleSheet.create({container:{minHeight:56,flexDirection:'row',alignItems:'center',backgroundColor:colors.surface,borderRadius:radius.lg,paddingHorizontal:10,borderWidth:1,borderColor:colors.border,...shadows.card},focused:{borderColor:colors.primary,shadowOpacity:.08},icon:{width:38,height:38,borderRadius:12,backgroundColor:colors.primaryLight,alignItems:'center',justifyContent:'center'},input:{flex:1,marginLeft:10,fontSize:15,color:colors.text,paddingVertical:12}});

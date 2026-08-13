@@ -73,7 +73,7 @@ export default function AdminDashboardScreen() {
       <Header
         title="Administração"
         subtitle="Farmácias pendentes"
-        onBack={() => navigation.goBack()}
+        onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
         right={(
           <TouchableOpacity onPress={handleLogout} style={{ paddingHorizontal: 12, paddingVertical: 6 }}>
             <Text style={styles.logoutText}>Sair</Text>

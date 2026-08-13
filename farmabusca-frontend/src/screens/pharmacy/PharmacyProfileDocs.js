@@ -1,92 +1,19 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Image } from 'react-native';
+import React,{useState} from 'react';
+import {View,Text,StyleSheet,TouchableOpacity,Alert,ScrollView,Image} from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import { useAuth } from '../../context/AuthContext';
-import { updatePharmacyProfile } from '../../services/api';
+import * as ImagePicker from 'expo-image-picker';
+import {Ionicons} from '@expo/vector-icons';
+import {updatePharmacyProfile} from '../../services/api';
 import CustomButton from '../../components/CustomButton';
-import { Ionicons } from '@expo/vector-icons';
+import {colors,radius,spacing,typography} from '../../theme';
 
-export default function PharmacyProfileDocs({ navigation }) {
-  const { user } = useAuth();
-  const [documents, setDocuments] = useState([]);
-  const [submitting, setSubmitting] = useState(false);
-
-  const pickDocuments = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({ multiple: true, copyToCacheDirectory: true });
-      if (result.type === 'cancel') return;
-      // expo's DocumentPicker returns a single file unless using the new multi option; normalize
-      const picked = Array.isArray(result) ? result : [result];
-      setDocuments((d) => [...d, ...picked]);
-    } catch (err) {
-      console.warn('Document pick error', err);
-      Alert.alert('Erro', 'Não foi possível selecionar documentos.');
-    }
-  };
-
-  const submitDocuments = async () => {
-    if (!documents.length) {
-      Alert.alert('Atenção', 'Adicione pelo menos um documento.');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const form = new FormData();
-      documents.forEach((doc, idx) => {
-        const uri = doc.uri || doc.uri;
-        const name = doc.name || `document-${idx}`;
-        const type = doc.mimeType || 'application/octet-stream';
-        form.append('documents', { uri, name, type });
-      });
-
-      const updated = await updatePharmacyProfile(form);
-      Alert.alert('Sucesso', 'Documentos enviados. A sua farmácia ficará pendente para aprovação.');
-      navigation.replace('PharmacyTabs');
-    } catch (err) {
-      console.error('Upload error', err);
-      Alert.alert('Erro', 'Falha ao enviar documentos.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.header}> 
-        <View style={styles.iconWrap}><Ionicons name="document-text" size={36} color="#2F9E5D" /></View>
-        <Text style={styles.title}>Documentos</Text>
-        <Text style={styles.subtitle}>Selecione os documentos oficiais para análise (licença, identificação, certificado).</Text>
-      </View>
-
-      <TouchableOpacity style={styles.pickBtn} onPress={pickDocuments}>
-        <Text style={styles.pickBtnText}>Selecionar documentos</Text>
-      </TouchableOpacity>
-
-      {documents.length > 0 && (
-        <View style={styles.docsList}>
-          {documents.map((d, i) => (
-            <View key={`${d.name || d.uri}-${i}`} style={styles.docRow}>
-              <Ionicons name="document-outline" size={18} color="#444" style={{ marginRight: 8 }} />
-              <Text numberOfLines={1} style={styles.docName}>{d.name || d.uri}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      <CustomButton title="Enviar documentos" loading={submitting} onPress={submitDocuments} disabled={submitting || documents.length === 0} />
-    </ScrollView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { padding: 20, backgroundColor: '#F6FBF6', flexGrow: 1 },
-  header: { alignItems: 'center', marginBottom: 18 },
-  iconWrap: { width: 76, height: 76, borderRadius: 38, backgroundColor: '#EAF8EE', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  title: { fontSize: 20, fontWeight: '800', marginBottom: 6, color: '#233447' },
-  subtitle: { color: '#6F7882', textAlign: 'center', marginBottom: 12 },
-  pickBtn: { backgroundColor: '#2F9E5D', padding: 14, borderRadius: 12, marginBottom: 12 },
-  pickBtnText: { color: '#fff', textAlign: 'center', fontWeight: '700' },
-  docsList: { marginBottom: 12, backgroundColor: '#fff', borderRadius: 8, padding: 8 },
-  docRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: '#F0F2F4' },
-  docName: { color: '#333', flex: 1 },
-});
+const documentTypes={nuit:{title:'Comprovativo do NUIT',description:'Documento oficial onde consta o NUIT da farmácia.'},license:{title:'Licença ou alvará',description:'Documento que comprova que a farmácia está autorizada a funcionar.'}};
+export default function PharmacyProfileDocs({navigation}){const[files,setFiles]=useState({nuit:null,license:null});const[photos,setPhotos]=useState([]);const[submitting,setSubmitting]=useState(false);
+ const pickDocument=async key=>{try{const result=await DocumentPicker.getDocumentAsync({type:['application/pdf','image/*'],copyToCacheDirectory:true,multiple:false});if(result.canceled)return;const asset=result.assets?.[0];if(asset)setFiles(old=>({...old,[key]:asset}));}catch(e){Alert.alert('Erro','Não foi possível selecionar o documento.')}};
+ const pickPhotos=async()=>{const permission=await ImagePicker.requestMediaLibraryPermissionsAsync();if(!permission.granted)return Alert.alert('Permissão necessária','Autorize o acesso às fotografias para anexar os documentos.');const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsMultipleSelection:true,quality:.8,selectionLimit:6});if(!result.canceled)setPhotos(old=>[...old,...result.assets].slice(0,6));};
+ const removePhoto=index=>setPhotos(old=>old.filter((_,i)=>i!==index));
+ const submit=async()=>{if(!files.nuit||!files.license)return Alert.alert('Documentos em falta','Adicione o comprovativo do NUIT e a licença ou alvará.');if(!photos.length)return Alert.alert('Fotografias em falta','Adicione pelo menos uma fotografia dos documentos ou do estabelecimento.');if(submitting)return;setSubmitting(true);try{const form=new FormData();[['nuit',files.nuit],['licenca',files.license]].forEach(([prefix,file])=>form.append('documents',{uri:file.uri,name:`${prefix}-${file.name||'documento'}`,type:file.mimeType||'application/octet-stream'}));photos.forEach((photo,i)=>form.append('documents',{uri:photo.uri,name:`foto-${i+1}.jpg`,type:photo.mimeType||'image/jpeg'}));await updatePharmacyProfile(form);Alert.alert('Documentos enviados','O cadastro foi enviado para análise. Pode acompanhar o estado no Painel.',[{text:'Ir ao Painel',onPress:()=>navigation.replace('PharmacyTabs')}]);}catch(e){Alert.alert('Falha no envio',e.response?'Não foi possível enviar os documentos. Tente novamente.':'Sem ligação ao servidor. Verifique a Internet.')}finally{setSubmitting(false)}};
+ return <ScrollView style={styles.page} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled"><Progress/><Text style={styles.title}>Documentos da farmácia</Text><Text style={styles.subtitle}>Envie ficheiros legíveis. PDF, JPG ou PNG são aceites.</Text>{Object.entries(documentTypes).map(([key,info])=><DocumentField key={key} info={info} file={files[key]} onPick={()=>pickDocument(key)} onRemove={()=>setFiles(old=>({...old,[key]:null}))}/>)}<View style={styles.section}><View style={styles.sectionHeader}><View style={styles.icon}><Ionicons name="camera-outline" size={21} color={colors.primaryDark}/></View><View style={{flex:1}}><Text style={styles.sectionTitle}>Fotografias</Text><Text style={styles.sectionText}>Fotografe os documentos e, se possível, a fachada da farmácia.</Text></View></View><TouchableOpacity style={styles.outlineButton} onPress={pickPhotos}><Ionicons name="images-outline" size={19} color={colors.primary}/><Text style={styles.outlineText}>Adicionar fotografias</Text></TouchableOpacity>{photos.length?<View style={styles.photos}>{photos.map((photo,i)=><View key={`${photo.uri}-${i}`} style={styles.photoWrap}><Image source={{uri:photo.uri}} style={styles.photo}/><TouchableOpacity style={styles.removePhoto} onPress={()=>removePhoto(i)}><Ionicons name="close" size={16} color={colors.surface}/></TouchableOpacity></View>)}</View>:null}</View><View style={styles.notice}><Ionicons name="lock-closed-outline" size={19} color={colors.support}/><Text style={styles.noticeText}>Os documentos são privados e usados apenas pela administração para verificar a farmácia.</Text></View><CustomButton title="Enviar para análise" icon="cloud-upload-outline" loading={submitting} disabled={submitting||!files.nuit||!files.license||!photos.length} onPress={submit}/><CustomButton title="Voltar e corrigir dados" variant="secondary" onPress={()=>navigation.goBack()}/></ScrollView>}
+function Progress(){return <View style={styles.progress}><View style={styles.progressTrack}><View style={styles.progressFill}/></View><Text style={styles.progressText}>Etapa 2 de 2</Text></View>}
+function DocumentField({info,file,onPick,onRemove}){return <View style={styles.section}><View style={styles.sectionHeader}><View style={styles.icon}><Ionicons name="document-text-outline" size={21} color={colors.primaryDark}/></View><View style={{flex:1}}><Text style={styles.sectionTitle}>{info.title}</Text><Text style={styles.sectionText}>{info.description}</Text></View></View>{file?<View style={styles.file}><Ionicons name="checkmark-circle" size={22} color={colors.primary}/><Text style={styles.fileName} numberOfLines={1}>{file.name}</Text><TouchableOpacity onPress={onRemove} hitSlop={8}><Ionicons name="trash-outline" size={20} color={colors.error}/></TouchableOpacity></View>:<TouchableOpacity style={styles.outlineButton} onPress={onPick}><Ionicons name="attach-outline" size={20} color={colors.primary}/><Text style={styles.outlineText}>Selecionar documento</Text></TouchableOpacity>}</View>}
+const styles=StyleSheet.create({page:{flex:1,backgroundColor:colors.background},container:{padding:spacing.xl,paddingBottom:44},progress:{marginBottom:20},progressTrack:{height:6,borderRadius:3,backgroundColor:colors.border},progressFill:{height:6,width:'100%',borderRadius:3,backgroundColor:colors.primary},progressText:{...typography.caption,color:colors.primaryDark,fontWeight:'700',marginTop:7},title:{...typography.title,color:colors.text},subtitle:{...typography.body,color:colors.textSecondary,marginTop:5,marginBottom:18},section:{backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,borderRadius:radius.lg,padding:16,marginBottom:12},sectionHeader:{flexDirection:'row',gap:12},icon:{width:42,height:42,borderRadius:12,backgroundColor:colors.primaryLight,alignItems:'center',justifyContent:'center'},sectionTitle:{...typography.heading,color:colors.text,fontSize:16},sectionText:{...typography.caption,color:colors.textSecondary,marginTop:3},outlineButton:{minHeight:48,borderRadius:radius.md,borderWidth:1,borderStyle:'dashed',borderColor:colors.primary,marginTop:14,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7},outlineText:{color:colors.primaryDark,fontWeight:'700'},file:{flexDirection:'row',alignItems:'center',gap:9,backgroundColor:colors.primaryMuted,padding:12,borderRadius:radius.md,marginTop:14},fileName:{flex:1,color:colors.text,fontWeight:'600'},photos:{flexDirection:'row',flexWrap:'wrap',gap:9,marginTop:14},photoWrap:{width:82,height:82},photo:{width:82,height:82,borderRadius:radius.md},removePhoto:{position:'absolute',right:-5,top:-5,width:24,height:24,borderRadius:12,backgroundColor:colors.error,alignItems:'center',justifyContent:'center'},notice:{flexDirection:'row',gap:9,backgroundColor:'#EFF6FF',padding:13,borderRadius:radius.md},noticeText:{...typography.caption,color:'#1E3A8A',flex:1}});

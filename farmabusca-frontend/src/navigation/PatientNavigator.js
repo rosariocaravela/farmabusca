@@ -1,16 +1,19 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
+import { createStackNavigator } from '@react-navigation/stack';
+import TabIcon from '../components/TabIcon';
 import HomeScreen from '../screens/patient/HomeScreen';
 import SearchMedicineScreen from '../screens/patient/SearchMedicineScreen';
 import FavoritesScreen from '../screens/patient/FavoritesScreen';
 import ProfileScreen from '../screens/patient/ProfileScreen';
 import MedicineDetailsScreen from '../screens/patient/MedicineDetailsScreen';
 import PharmacyDetailsScreen from '../screens/patient/PharmacyDetailsScreen';
+import { colors } from '../theme';
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
 
-export default function PatientNavigator() {
+function PatientTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -21,19 +24,22 @@ export default function PatientNavigator() {
           else if (route.name === 'Pesquisar') iconName = focused ? 'search' : 'search-outline';
           else if (route.name === 'Favoritos') iconName = focused ? 'heart' : 'heart-outline';
           else if (route.name === 'Perfil') iconName = focused ? 'person' : 'person-outline';
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <TabIcon name={iconName} focused={focused} color={color} />;
         },
-        tabBarActiveTintColor: '#2F9E5D',
-        tabBarInactiveTintColor: '#8c95a4',
-        tabBarStyle: { height: 64, paddingBottom: 8, borderTopWidth: 0, backgroundColor: '#FFFFFF' },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 1 },
+        tabBarStyle: { height: 72, paddingBottom: 8, paddingTop: 7, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Início' }} />
       <Tab.Screen name="Pesquisar" component={SearchMedicineScreen} />
       <Tab.Screen name="Favoritos" component={FavoritesScreen} />
       <Tab.Screen name="Perfil" component={ProfileScreen} />
-      <Tab.Screen name="MedicineDetails" component={MedicineDetailsScreen} options={{ tabBarButton: () => null }} />
-      <Tab.Screen name="PharmacyDetails" component={PharmacyDetailsScreen} options={{ tabBarButton: () => null }} />
     </Tab.Navigator>
   );
+}
+
+export default function PatientNavigator() {
+  return <Stack.Navigator screenOptions={{ headerShown: false }}><Stack.Screen name="PatientTabs" component={PatientTabs} /><Stack.Screen name="MedicineDetails" component={MedicineDetailsScreen} /><Stack.Screen name="PharmacyDetails" component={PharmacyDetailsScreen} /></Stack.Navigator>;
 }

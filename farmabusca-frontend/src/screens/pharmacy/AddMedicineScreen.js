@@ -18,7 +18,7 @@ import CustomButton from '../../components/CustomButton';
 import { createMedicine } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
-const categories = ['Analgésicos', 'Antibióticos', 'Vitaminas', 'Anti-inflamatórios', 'Outros'];
+const defaultCategories = ['Analgésicos', 'Antibióticos', 'Vitaminas', 'Anti-inflamatórios', 'Gripes e Resfriados', 'Digestivos', 'Antialérgicos', 'Dermatológicos', 'Vitaminas e Suplementos', 'Medicamentos Genéricos', 'Outro'];
 
 export default function AddMedicineScreen({ navigation }) {
   const {
@@ -42,7 +42,7 @@ export default function AddMedicineScreen({ navigation }) {
   const categoryValue = watch('category');
   const { user } = useAuth();
   const [imageUri, setImageUri] = useState('');
-  const [stockStatus, setStockStatus] = useState('AVAILABLE');
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -97,8 +97,8 @@ export default function AddMedicineScreen({ navigation }) {
       return Alert.alert('Acesso negado', 'Você precisa estar logado como farmácia para cadastrar medicamentos.');
     }
 
-    if (Number(data.quantity) <= 0 && stockStatus === 'AVAILABLE') {
-      return Alert.alert('Validação', 'Quantidade deve ser maior que zero quando o medicamento estiver disponível.');
+    if (!data.category || data.category.trim() === '') {
+      return Alert.alert('Validação', 'Categoria é obrigatória.');
     }
 
     setLoading(true);
@@ -114,7 +114,6 @@ export default function AddMedicineScreen({ navigation }) {
       form.append('manufacturer', data.manufacturer?.trim() || '');
       form.append('activeIngredient', data.activeIngredient?.trim() || '');
       form.append('dosage', data.dosage?.trim() || '');
-      form.append('stockStatus', stockStatus);
 
       const imageField = await buildImageField();
       if (imageField) {
@@ -125,7 +124,7 @@ export default function AddMedicineScreen({ navigation }) {
       setSuccessMessage('Medicamento cadastrado com sucesso.');
       reset();
       setImageUri('');
-      setStockStatus('AVAILABLE');
+      setShowCustomCategory(false);
     } catch (error) {
       console.error('createMedicine error', error.response?.data || error.message || error);
       const serverMessage = error.response?.data?.message || error.message || 'Não foi possível adicionar o medicamento.';
@@ -138,7 +137,7 @@ export default function AddMedicineScreen({ navigation }) {
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.headerRow}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Dashboard')}>
           <Ionicons name="chevron-back" size={22} color="#1F2937" />
           <Text style={styles.backText}>Voltar</Text>
         </TouchableOpacity>
@@ -175,18 +174,45 @@ export default function AddMedicineScreen({ navigation }) {
         {errors.name && <Text style={styles.errorText}>{errors.name.message}</Text>}
 
         <Text style={styles.label}>Categoria</Text>
-        <View style={styles.optionsRow}>
-          {categories.map((item) => (
+        <View style={styles.categoryChecklist}>
+          {defaultCategories.map((item) => (
             <TouchableOpacity
               key={item}
-              style={[styles.optionPill, errors.category && styles.optionPillError, item === categoryValue && styles.optionPillSelected]}
-              onPress={() => setValue('category', item, { shouldValidate: true })}
+              style={styles.checklistItem}
+              onPress={() => { setValue('category', item, { shouldValidate: true }); setShowCustomCategory(false); }}
             >
-              <Text style={[styles.optionText, item === categoryValue && styles.optionTextSelected]}>{item}</Text>
+              <View style={[styles.checkbox, item === categoryValue && styles.checkboxSelected]}>
+                {item === categoryValue && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+              </View>
+              <Text style={styles.checklistLabel}>{item}</Text>
             </TouchableOpacity>
           ))}
         </View>
-        {errors.category && <Text style={styles.errorText}>{errors.category.message || 'Selecione uma categoria.'}</Text>}
+        {!showCustomCategory && (
+          <TouchableOpacity onPress={() => setShowCustomCategory(true)} style={styles.customCategoryButton}>
+            <Text style={styles.customCategoryText}>+ Adicionar categoria personalizada</Text>
+          </TouchableOpacity>
+        )}
+        {showCustomCategory && (
+          <View style={styles.customCategoryInput}>
+            <Controller
+              control={control}
+              name="category"
+              rules={{ required: 'Categoria é obrigatória.' }}
+              render={({ field: { onChange, value } }) => (
+                <CustomInput
+                  placeholder="Digite sua categoria"
+                  value={value}
+                  onChangeText={onChange}
+                />
+              )}
+            />
+            <TouchableOpacity onPress={() => setShowCustomCategory(false)} style={styles.customCategoryClose}>
+              <Text style={styles.customCategoryCloseText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {errors.category && <Text style={styles.errorText}>{errors.category.message || 'Categoria é obrigatória.'}</Text>}
 
         <Controller
           control={control}
@@ -204,22 +230,7 @@ export default function AddMedicineScreen({ navigation }) {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Estado do medicamento</Text>
-        <View style={styles.statusRow}>
-          <TouchableOpacity
-            style={[styles.statusButton, stockStatus === 'AVAILABLE' && styles.statusButtonActive]}
-            onPress={() => setStockStatus('AVAILABLE')}
-          >
-            <Text style={[styles.statusLabel, stockStatus === 'AVAILABLE' && styles.statusLabelActive]}>🟢 Disponível</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.statusButton, stockStatus === 'OUT_OF_STOCK' && styles.statusButtonActive]}
-            onPress={() => setStockStatus('OUT_OF_STOCK')}
-          >
-            <Text style={[styles.statusLabel, stockStatus === 'OUT_OF_STOCK' && styles.statusLabelActive]}>🔴 Esgotado</Text>
-          </TouchableOpacity>
-        </View>
-
+        <Text style={styles.cardTitle}>Quantidade</Text>
         <Controller
           control={control}
           name="quantity"
@@ -288,39 +299,16 @@ const styles = StyleSheet.create({
   imagePlaceholderText: { color: '#2F9E5D', fontSize: 16, fontWeight: '700', marginTop: 8 },
   imagePreview: { width: '100%', height: '100%' },
   label: { fontSize: 14, color: '#475569', marginBottom: 10, fontWeight: '600' },
-  optionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
-  optionPill: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 8,
-  },
-  optionPillSelected: {
-    backgroundColor: '#E6F4EC',
-    borderColor: '#2F9E5D',
-  },
-  optionPillError: { borderColor: '#EF4444' },
-  optionText: { color: '#334155', fontSize: 14 },
-  optionTextSelected: { color: '#1F2937', fontWeight: '700' },
-  statusRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  statusButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-  },
-  statusButtonActive: {
-    backgroundColor: '#ECFDF3',
-    borderColor: '#2F9E5D',
-  },
-  statusLabel: { color: '#475569', fontWeight: '700' },
-  statusLabelActive: { color: '#1F2937' },
+  categoryChecklist: { marginBottom: 12 },
+  checklistItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8 },
+  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: '#CBD5E1', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  checkboxSelected: { backgroundColor: '#2F9E5D', borderColor: '#2F9E5D' },
+  checklistLabel: { fontSize: 14, color: '#334155', fontWeight: '500' },
+  customCategoryButton: { marginTop: 12, paddingVertical: 10, alignItems: 'center' },
+  customCategoryText: { color: '#2F9E5D', fontSize: 14, fontWeight: '600' },
+  customCategoryInput: { marginTop: 12, padding: 12, backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  customCategoryClose: { marginTop: 10, paddingVertical: 10, alignItems: 'center' },
+  customCategoryCloseText: { color: '#64748B', fontSize: 13 },
   helpText: { color: '#64748B', fontSize: 13, marginTop: 8 },
   errorText: { color: '#DC2626', fontSize: 13, marginTop: -10, marginBottom: 12 },
   successText: { color: '#15803D', fontSize: 14, fontWeight: '700', textAlign: 'center', marginBottom: 12 },

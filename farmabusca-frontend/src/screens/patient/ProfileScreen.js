@@ -9,6 +9,7 @@ import {
   Linking,
   Platform,
   Alert,
+  Modal,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +27,21 @@ const defaultHours = [
   { day: 'Sábado', time: '08:00 - 14:00' },
   { day: 'Domingo', time: 'Fechado' },
 ];
+
+const provinceOptions = ['Maputo', 'Gaza', 'Inhambane', 'Sofala', 'Manica', 'Tete', 'Zambézia', 'Nampula', 'Niassa', 'Cabo Delgado'];
+const categoryOptions = ['Farmácia', 'Clínica', 'Outro'];
+const cityOptionsByProvince = {
+  Maputo: ['Maputo Cidade', 'Matola', 'Boane', 'Marracuene', 'Magude'],
+  Gaza: ['Xai-Xai', 'Chibuto', 'Massingir', 'Bilene', 'Mabalane'],
+  Inhambane: ['Inhambane', 'Maxixe', 'Vilankulo', 'Jangamo', 'Panda'],
+  Sofala: ['Beira', 'Dondo', 'Nhamatanda', 'Muanza', 'Save'],
+  Manica: ['Chimoio', 'Barue', 'Gondola', 'Sussundenga', 'Machaze'],
+  Tete: ['Tete', 'Moatize', 'Mutarara', 'Chiuta', 'Angónia'],
+  'Zambézia': ['Quelimane', 'Milange', 'Gurué', 'Alto Molócuè', 'Namacurra'],
+  Nampula: ['Nampula', 'Malema', 'Mecubúri', 'Ribaue', 'Monapo'],
+  Niassa: ['Lichinga', 'Cuamba', 'Majune', 'Sanga', 'Marrupa'],
+  'Cabo Delgado': ['Pemba', 'Metuge', 'Mueda', 'Montepuez', 'Ancuabe'],
+};
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout, updateSessionUser } = useAuth();
@@ -47,7 +63,13 @@ export default function ProfileScreen({ navigation }) {
   const [profileMessage, setProfileMessage] = useState('');
   const [approved, setApproved] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
-  const medicineCount = 24;
+  const [medicineCount, setMedicineCount] = useState(0);
+  const [pharmacyStats, setPharmacyStats] = useState({ views: 0 });
+  const [provincePickerOpen, setProvincePickerOpen] = useState(false);
+  const [cityPickerOpen, setCityPickerOpen] = useState(false);
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
+
+  const cityOptions = cityOptionsByProvince[province] || [];
 
   const isPharmacy = user?.role?.toLowerCase() === 'pharmacy';
   const isPatient = user?.role?.toLowerCase() === 'patient';
@@ -122,6 +144,7 @@ export default function ProfileScreen({ navigation }) {
         setOpen24h(pharmacy.openingHours === '24h');
         setApproved(Boolean(pharmacy.approved));
         setLogo(pharmacy.image || null);
+        setPharmacyStats({ views: Number(pharmacy.views || 0) });
         setLogoChanged(false);
       } else {
         setPharmacyId(null);
@@ -151,6 +174,12 @@ export default function ProfileScreen({ navigation }) {
 
       if (currentUser?.role?.toLowerCase() === 'pharmacy') {
         await loadPharmacyProfile();
+        try {
+          const medications = await import('../../services/api').then(({ getMyPharmacyMedicines }) => getMyPharmacyMedicines());
+          setMedicineCount(Array.isArray(medications) ? medications.length : 0);
+        } catch (error) {
+          setMedicineCount(0);
+        }
       }
     } catch (error) {
       console.log('Erro carregando perfil', error.response?.data || error.message || error);
@@ -200,7 +229,7 @@ export default function ProfileScreen({ navigation }) {
       await loadPharmacyProfile();
     } catch (error) {
       console.log('Erro salvando perfil da farmácia', error.response?.data || error.message || error);
-      Alert.alert('Erro', error.response?.data?.message || error.message || 'Não foi possível salvar o perfil da farmácia.');
+      Alert.alert('Erro', 'Não foi possível salvar o perfil.');
     } finally {
       setSaving(false);
     }
@@ -231,9 +260,17 @@ export default function ProfileScreen({ navigation }) {
       setProfileMessage('Perfil do paciente atualizado com sucesso.');
     } catch (error) {
       console.log('Erro salvando perfil do paciente', error.response?.data || error.message || error);
-      Alert.alert('Erro', error.response?.data?.message || error.message || 'Não foi possível salvar o perfil do paciente.');
+      Alert.alert('Erro', 'Não foi possível salvar o perfil.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleProvinceSelect = (nextProvince) => {
+    setProvince(nextProvince);
+    const nextCities = cityOptionsByProvince[nextProvince] || [];
+    if (nextCities.length > 0 && !nextCities.includes(city)) {
+      setCity(nextCities[0]);
     }
   };
 
@@ -297,7 +334,15 @@ export default function ProfileScreen({ navigation }) {
         <CustomInput label="Telefone" placeholder="84 000 000" value={contact} onChangeText={setContact} keyboardType="phone-pad" />
         <CustomInput label="WhatsApp" placeholder="84 256 7470" value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" />
         <CustomInput label="Email" placeholder="seu@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" />
-        {isPharmacy ? <CustomInput label="Categoria" placeholder="Farmácia / Clínica / Outro" value={category} onChangeText={setCategory} /> : null}
+        {isPharmacy ? (
+          <View style={styles.selectField}>
+            <Text style={styles.label}>Categoria</Text>
+            <TouchableOpacity style={styles.selectBox} onPress={() => setCategoryPickerOpen(true)}>
+              <Text style={[styles.selectValue, !category && styles.placeholderText]}>{category || 'Selecione a categoria'}</Text>
+              <Ionicons name="chevron-down" size={18} color="#475569" />
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </View>
 
       {isPharmacy ? (
@@ -309,11 +354,78 @@ export default function ProfileScreen({ navigation }) {
                 <Text style={styles.sectionLink}>Localizar no mapa</Text>
               </TouchableOpacity>
             </View>
-            <CustomInput label="Província" placeholder="Província" value={province} onChangeText={setProvince} />
-            <CustomInput label="Cidade / Distrito" placeholder="Cidade ou distrito" value={city} onChangeText={setCity} />
+            <View style={styles.selectField}>
+              <Text style={styles.label}>Província</Text>
+              <TouchableOpacity style={styles.selectBox} onPress={() => setProvincePickerOpen(true)}>
+                <Text style={[styles.selectValue, !province && styles.placeholderText]}>{province || 'Selecione a província'}</Text>
+                <Ionicons name="chevron-down" size={18} color="#475569" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.selectField}>
+              <Text style={styles.label}>Cidade</Text>
+              <TouchableOpacity style={styles.selectBox} onPress={() => setCityPickerOpen(true)} disabled={!province}>
+                <Text style={[styles.selectValue, (!city || !province) && styles.placeholderText]}>{city || 'Selecione a cidade'}</Text>
+                <Ionicons name="chevron-down" size={18} color="#475569" />
+              </TouchableOpacity>
+            </View>
+
             <CustomInput label="Bairro" placeholder="Bairro" value={district} onChangeText={setDistrict} />
             <CustomInput label="Endereço" placeholder="Endereço completo" value={address} onChangeText={setAddress} />
           </View>
+
+          <Modal visible={categoryPickerOpen} transparent animationType="fade" onRequestClose={() => setCategoryPickerOpen(false)}>
+            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCategoryPickerOpen(false)}>
+              <View style={styles.modalCard}>
+                <Text style={styles.modalTitle}>Selecione a categoria</Text>
+                <ScrollView style={styles.modalList}>
+                  {categoryOptions.map((item) => (
+                    <TouchableOpacity key={item} style={styles.optionItem} onPress={() => { setCategory(item); setCategoryPickerOpen(false); }}>
+                      <Text style={styles.optionText}>{item}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+
+          <Modal visible={provincePickerOpen} transparent animationType="fade" onRequestClose={() => setProvincePickerOpen(false)}>
+            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setProvincePickerOpen(false)}>
+              <View style={styles.modalCard}>
+                <Text style={styles.modalTitle}>Selecione a província</Text>
+                <ScrollView style={styles.modalList}>
+                  {provinceOptions.map((item) => (
+                    <TouchableOpacity key={item} style={styles.optionItem} onPress={() => { handleProvinceSelect(item); setProvincePickerOpen(false); }}>
+                      <Text style={styles.optionText}>{item}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+
+          <Modal visible={cityPickerOpen} transparent animationType="fade" onRequestClose={() => setCityPickerOpen(false)}>
+            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCityPickerOpen(false)}>
+              <View style={styles.modalCard}>
+                <Text style={styles.modalTitle}>Selecione a cidade</Text>
+                <ScrollView style={styles.modalList}>
+                  {(cityOptions.length ? cityOptions : ['Selecione primeiro a província']).map((item) => (
+                    <TouchableOpacity
+                      key={item}
+                      style={styles.optionItem}
+                      onPress={() => {
+                        if (item === 'Selecione primeiro a província') return;
+                        setCity(item);
+                        setCityPickerOpen(false);
+                      }}
+                    >
+                      <Text style={styles.optionText}>{item}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </TouchableOpacity>
+          </Modal>
 
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeaderRow}>
@@ -334,7 +446,7 @@ export default function ProfileScreen({ navigation }) {
             <Text style={styles.sectionTitle}>Estatísticas</Text>
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>540</Text>
+                <Text style={styles.statValue}>{pharmacyStats.views}</Text>
                 <Text style={styles.statLabel}>Visualizações</Text>
               </View>
               <View style={styles.statItem}>
@@ -426,6 +538,37 @@ const styles = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '800', color: '#1F2937' },
   sectionLink: { color: '#2563EB', fontWeight: '700' },
+  label: { fontSize: 13, fontWeight: '700', color: '#334155', marginBottom: 8 },
+  selectField: { marginBottom: 14 },
+  selectBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#DDE7F0',
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  selectValue: { color: '#0F172A', fontSize: 14, fontWeight: '600', flex: 1 },
+  placeholderText: { color: '#94A3B8' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    maxHeight: 420,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#0F172A', marginBottom: 12 },
+  modalList: { maxHeight: 300 },
+  optionItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
+  optionText: { color: '#0F172A', fontSize: 15, fontWeight: '600' },
   scheduleRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   scheduleDay: { color: '#4B5563', fontSize: 14 },
   scheduleTime: { color: '#111827', fontWeight: '700', fontSize: 14 },

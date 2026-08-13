@@ -115,15 +115,15 @@ export default function PharmacyDetailsScreen() {
   const hasPharmacyData = Boolean(pharmacyItem && (pharmacyItem.name || pharmacyItem.address || pharmacyItem.location || pharmacyItem.phone));
   const name = pharmacyItem?.name || item?.name || 'Farmácia';
   const address = pharmacyItem?.address || pharmacyItem?.location || item?.address || item?.location || 'Endereço não disponível';
-  const phone = pharmacyItem?.phone || item?.phone || '84 000 000';
-  const openingHours = pharmacyItem?.openingHours || item?.openingHours || '08:00 - 20:00';
+  const phone = pharmacyItem?.phone || item?.phone || '';
+  const openingHours = pharmacyItem?.openingHours || item?.openingHours || '';
   const isOpen = getPharmacyOpenStatus(openingHours);
   const imageSource = pharmacyItem?.image || pharmacyItem?.imageUrl || item?.image || item?.imageUrl || item?.logo || null;
   const whatsapp = pharmacyItem?.whatsapp || item?.whatsapp || item?.phone || '';
 
   return (
     <ScrollView style={styles.container}>
-      <Header title={name} subtitle="Detalhes da farmácia" onBack={() => navigation.goBack()} />
+      <Header title={name} subtitle="Detalhes da farmácia" onBack={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('PatientTabs')} />
       <View style={styles.card}>
         {loading ? (
           <Text style={styles.loadingText}>Carregando dados da farmácia...</Text>
@@ -154,13 +154,13 @@ export default function PharmacyDetailsScreen() {
                 </Text>
               </View>
             </View>
-            <Text style={styles.availabilityText}>Disponibilidade: {isOpen ? 'Aberta agora' : 'Fechada no momento'}</Text>
+            <Text style={styles.availabilityText}>Estado do cadastro: {pharmacyItem?.approved ? 'Farmácia verificada' : 'Em análise'}</Text>
             <Text style={styles.text}>Endereço: {address}</Text>
-            <Text style={styles.text}>Telefone: {phone}</Text>
-            <Text style={styles.text}>Horário: {openingHours}</Text>
+            <Text style={styles.text}>{phone ? `Telefone: ${phone}` : 'Telefone não informado'}</Text>
+            <Text style={styles.text}>{openingHours ? `Horário: ${openingHours}` : 'Horário não informado'}</Text>
             <View style={{ marginTop: 16 }}>
-              <CustomButton title="Ligar" onPress={() => Linking.openURL(`tel:${phone.replace(/[^0-9]/g, '')}`)} />
-              <CustomButton title="WhatsApp" variant="secondary" onPress={() => openWhatsApp(whatsapp)} />
+              <CustomButton title="Ligar" disabled={!phone} onPress={() => Linking.openURL(`tel:${phone.replace(/[^0-9]/g, '')}`)} />
+              <CustomButton title="WhatsApp" variant="secondary" disabled={!whatsapp} onPress={() => openWhatsApp(whatsapp)} />
               <CustomButton title="Mapa" variant="secondary" onPress={() => openMap(address)} />
             </View>
           </>

@@ -113,6 +113,9 @@ const updateMedicine = async (req, res, next) => {
       medicine.quantity = quantity;
       medicine.stockStatus = quantity > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK';
     }
+    if (req.body.stockStatus !== undefined) {
+      medicine.stockStatus = req.body.stockStatus;
+    }
 
     if (req.body.category) {
       const [category] = await Category.findOrCreate({
@@ -124,6 +127,10 @@ const updateMedicine = async (req, res, next) => {
 
     if (req.body.image !== undefined) {
       medicine.image = req.body.image;
+    }
+
+    if (req.body.imageRemoved === 'true') {
+      medicine.image = null;
     }
 
     await medicine.save();

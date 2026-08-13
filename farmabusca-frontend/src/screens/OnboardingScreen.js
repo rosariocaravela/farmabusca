@@ -1,42 +1,14 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import CustomButton from '../components/CustomButton';
-
-const slides = [
-  { title: 'Encontre medicamentos rapidamente', description: 'Pesquise medicamentos disponíveis nas farmácias próximas.' },
-  { title: 'Consulte farmácias', description: 'Veja preços, localização e contactos.' },
-  { title: 'Cuide melhor da sua saúde', description: 'Tenha informação antes de sair de casa.' },
+import BrandMark from '../components/BrandMark';
+import { colors, spacing, radius, typography } from '../theme';
+const slides=[
+ {icon:'search',title:'Encontre com rapidez',description:'Pesquise medicamentos e consulte a disponibilidade antes de sair de casa.'},
+ {icon:'location',title:'Farmácias perto de si',description:'Compare opções, contactos e localização de farmácias em Moçambique.'},
+ {icon:'shield-checkmark',title:'Informação de confiança',description:'Consulte dados atualizados pelas farmácias numa experiência simples e segura.'},
 ];
-
-export default function OnboardingScreen() {
-  const navigation = useNavigation();
-  const [index, setIndex] = React.useState(0);
-
-  const nextSlide = () => {
-    if (index < slides.length - 1) {
-      setIndex(index + 1);
-    } else {
-      navigation.replace('Login');
-    }
-  };
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.step}>{index + 1}/3</Text>
-        <Text style={styles.title}>{slides[index].title}</Text>
-        <Text style={styles.description}>{slides[index].description}</Text>
-        <CustomButton title="Começar" onPress={nextSlide} />
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#F7F9FC' },
-  card: { backgroundColor: '#FFF', borderRadius: 24, padding: 24, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 14, elevation: 4 },
-  step: { color: '#1976D2', fontWeight: '700', marginBottom: 12 },
-  title: { fontSize: 24, fontWeight: '800', color: '#333', marginBottom: 8 },
-  description: { fontSize: 16, color: '#666', marginBottom: 18, lineHeight: 24 },
-});
+export default function OnboardingScreen({navigation}){const[index,setIndex]=useState(0);const slide=slides[index];const next=()=>index<2?setIndex(index+1):navigation.replace('Login');return <SafeAreaView style={styles.safe}><View style={styles.top}><BrandMark compact/><TouchableOpacity onPress={()=>navigation.replace('Login')}><Text style={styles.skip}>Saltar</Text></TouchableOpacity></View><View style={styles.content}><View style={styles.visual}><Ionicons name={slide.icon} size={64} color={colors.primary}/></View><View style={styles.dots}>{slides.map((_,i)=><View key={i} style={[styles.dot,i===index&&styles.activeDot]}/>)}</View><Text style={styles.title}>{slide.title}</Text><Text style={styles.description}>{slide.description}</Text></View><View><CustomButton title={index===2?'Começar agora':'Continuar'} onPress={next}/><Text style={styles.note}>Consulte um profissional de saúde antes de utilizar qualquer medicamento.</Text></View></SafeAreaView>}
+const styles=StyleSheet.create({safe:{flex:1,backgroundColor:colors.background,paddingHorizontal:spacing.xxl,paddingBottom:spacing.xl},top:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',paddingTop:spacing.md},skip:{color:colors.primaryDark,fontWeight:'700'},content:{flex:1,justifyContent:'center'},visual:{height:220,borderRadius:radius.xl,backgroundColor:colors.primaryLight,alignItems:'center',justifyContent:'center'},dots:{flexDirection:'row',marginTop:24,gap:7},dot:{width:8,height:8,borderRadius:4,backgroundColor:colors.border},activeDot:{width:28,backgroundColor:colors.primary},title:{...typography.display,color:colors.text,marginTop:20},description:{...typography.body,color:colors.textSecondary,marginTop:10},note:{...typography.caption,color:colors.textSecondary,textAlign:'center',marginTop:14}});

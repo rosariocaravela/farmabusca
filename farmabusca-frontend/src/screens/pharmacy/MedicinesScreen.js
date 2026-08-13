@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import MedicineCard from '../../components/MedicineCard';
 import { getMyPharmacyMedicines } from '../../services/api';
 
@@ -16,7 +17,9 @@ export default function MedicinesScreen({ navigation }) {
     getMyPharmacyMedicines()
       .then((res) => {
         if (!mounted) return;
+        console.log('Medicines response:', res);
         const list = Array.isArray(res) ? res : res.data || [];
+        console.log('Medicines list:', list);
         const meds = list.map((m) => ({
           id: m.id,
           name: m.name,
@@ -29,7 +32,8 @@ export default function MedicinesScreen({ navigation }) {
       })
       .catch((err) => {
         if (!mounted) return;
-        setError(err.message || 'Erro ao carregar medicamentos');
+        console.error('Error loading medicines:', err);
+        setError(err.response?.data?.message || err.message || 'Erro ao carregar medicamentos');
       })
       .finally(() => mounted && setLoading(false));
 
@@ -42,13 +46,56 @@ export default function MedicinesScreen({ navigation }) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 20 }}>
-      <Text style={styles.title}>Medicamentos cadastrados</Text>
-      {loading ? <Text>Carregando...</Text> : error ? <Text>{error}</Text> : medicines.map((item) => <MedicineCard key={item.id} item={item} onPress={() => handlePress(item)} />)}
+      <View style={styles.header}>
+        <Text style={styles.title}>Medicamentos cadastrados</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('AddMedicine')}>
+          <Ionicons name="add-circle" size={28} color="#2F9E5D" />
+        </TouchableOpacity>
+      </View>
+
+      {loading ? (
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color="#2F9E5D" />
+          <Text style={styles.loadingText}>Carregando medicamentos...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorBox}>
+          <Ionicons name="alert-circle" size={32} color="#DC2626" />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => window.location.reload?.() || navigation.reset({ index: 0, routes: [{ name: 'Medicamentos' }] })}>
+            <Text style={styles.retryText}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
+      ) : medicines.length === 0 ? (
+        <View style={styles.emptyBox}>
+          <Ionicons name="package-outline" size={48} color="#CBD5E1" />
+          <Text style={styles.emptyTitle}>Nenhum medicamento cadastrado</Text>
+          <Text style={styles.emptyText}>Comece adicionando um medicamento ao catálogo.</Text>
+          <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AddMedicine')}>
+            <Ionicons name="add" size={20} color="#FFFFFF" />
+            <Text style={styles.addButtonText}>Adicionar medicamento</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        medicines.map((item) => <MedicineCard key={item.id} item={item} onPress={() => handlePress(item)} />)
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7F9FC' },
-  title: { fontSize: 24, fontWeight: '800', color: '#333', marginBottom: 16 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  title: { fontSize: 24, fontWeight: '800', color: '#333' },
+  centerContent: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
+  loadingText: { fontSize: 14, color: '#64748B', marginTop: 12 },
+  errorBox: { backgroundColor: '#FEE2E2', borderRadius: 12, padding: 20, alignItems: 'center' },
+  errorText: { fontSize: 14, color: '#DC2626', marginTop: 12, textAlign: 'center' },
+  retryButton: { marginTop: 16, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#DC2626', borderRadius: 8 },
+  retryText: { color: '#FFFFFF', fontWeight: '600' },
+  emptyBox: { backgroundColor: '#F1F5F9', borderRadius: 12, padding: 24, alignItems: 'center' },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: '#334155', marginTop: 12 },
+  emptyText: { fontSize: 14, color: '#64748B', marginTop: 8, textAlign: 'center' },
+  addButton: { marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#2F9E5D', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
+  addButtonText: { color: '#FFFFFF', fontWeight: '600' },
 });

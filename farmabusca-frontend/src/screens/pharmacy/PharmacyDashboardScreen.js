@@ -85,7 +85,7 @@ export default function PharmacyDashboardScreen({ navigation }) {
   const available = medicines.filter((item) => item.stockStatus === 'AVAILABLE').length;
   const outOfStock = medicines.filter((item) => item.stockStatus !== 'AVAILABLE').length;
   const categories = new Set(medicines.map((item) => item.category || 'Sem categoria')).size;
-  const views = 540;
+  const views = Number(pharmacy?.views || 0);
   const emptyImageAlerts = medicines.filter((item) => !item.image).length;
   const incompleteInfoAlerts = medicines.filter((item) => !item.name || !item.category || !item.price).length;
   const recentMedicines = filteredMedicines.slice(0, 4);
@@ -136,7 +136,7 @@ export default function PharmacyDashboardScreen({ navigation }) {
           <Text style={styles.noProfileText}>
             Complete o perfil da farmácia para que seus medicamentos apareçam no painel e seus clientes encontrem sua loja.
           </Text>
-          <CustomButton title="Criar perfil da farmácia" onPress={() => navigation.navigate('Perfil')} />
+          <CustomButton title="Iniciar cadastro da farmácia" onPress={() => navigation.navigate('PharmacyProfileSetup')} />
         </View>
       ) : null}
 

@@ -1,12 +1,13 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
+import TabIcon from '../components/TabIcon';
 import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
 import AdminPharmaciesScreen from '../screens/admin/AdminPharmaciesScreen';
 import AdminMedicinesScreen from '../screens/admin/AdminMedicinesScreen';
 import AdminMapScreen from '../screens/admin/AdminMapScreen';
 import AdminProfileScreen from '../screens/admin/AdminProfileScreen';
+import { colors } from '../theme';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -23,14 +24,15 @@ function AdminTabs() {
           else if (route.name === 'Medicamentos') iconName = focused ? 'medkit' : 'medkit-outline';
           else if (route.name === 'Mapa') iconName = focused ? 'map' : 'map-outline';
           else if (route.name === 'Perfil') iconName = focused ? 'person' : 'person-outline';
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <TabIcon name={iconName} focused={focused} color={color} />;
         },
-        tabBarActiveTintColor: '#1976D2',
-        tabBarInactiveTintColor: '#8E8E93',
-        tabBarStyle: { height: 64, paddingBottom: 8, paddingTop: 8 },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginTop: 1 },
+        tabBarStyle: { height: 72, paddingBottom: 8, paddingTop: 7, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface },
       })}
     >
-      <Tab.Screen name="Dashboard" component={AdminDashboardScreen} />
+      <Tab.Screen name="Dashboard" component={AdminDashboardScreen} options={{ title: 'Visão geral' }} />
       <Tab.Screen name="Farmácias" component={AdminPharmaciesScreen} />
       <Tab.Screen name="Medicamentos" component={AdminMedicinesScreen} />
       <Tab.Screen name="Mapa" component={AdminMapScreen} />
