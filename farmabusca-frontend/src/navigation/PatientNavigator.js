@@ -12,6 +12,31 @@ import { colors } from '../theme';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
+const HomeStack = createStackNavigator();
+const SearchStack = createStackNavigator();
+const FavoritesStack = createStackNavigator();
+
+function PatientSection({ navigator: SectionStack, initialName, initialComponent }) {
+  return (
+    <SectionStack.Navigator screenOptions={{ headerShown: false }}>
+      <SectionStack.Screen name={initialName} component={initialComponent} />
+      <SectionStack.Screen name="MedicineDetails" component={MedicineDetailsScreen} />
+      <SectionStack.Screen name="PharmacyDetails" component={PharmacyDetailsScreen} />
+    </SectionStack.Navigator>
+  );
+}
+
+function HomeNavigator() {
+  return <PatientSection navigator={HomeStack} initialName="HomeList" initialComponent={HomeScreen} />;
+}
+
+function SearchNavigator() {
+  return <PatientSection navigator={SearchStack} initialName="SearchList" initialComponent={SearchMedicineScreen} />;
+}
+
+function FavoritesNavigator() {
+  return <PatientSection navigator={FavoritesStack} initialName="FavoritesList" initialComponent={FavoritesScreen} />;
+}
 
 function PatientTabs() {
   return (
@@ -32,14 +57,14 @@ function PatientTabs() {
         tabBarStyle: { height: 72, paddingBottom: 8, paddingTop: 7, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Início' }} />
-      <Tab.Screen name="Pesquisar" component={SearchMedicineScreen} />
-      <Tab.Screen name="Favoritos" component={FavoritesScreen} />
+      <Tab.Screen name="Home" component={HomeNavigator} options={{ title: 'Início' }} />
+      <Tab.Screen name="Pesquisar" component={SearchNavigator} />
+      <Tab.Screen name="Favoritos" component={FavoritesNavigator} />
       <Tab.Screen name="Perfil" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
 
 export default function PatientNavigator() {
-  return <Stack.Navigator screenOptions={{ headerShown: false }}><Stack.Screen name="PatientTabs" component={PatientTabs} /><Stack.Screen name="MedicineDetails" component={MedicineDetailsScreen} /><Stack.Screen name="PharmacyDetails" component={PharmacyDetailsScreen} /></Stack.Navigator>;
+  return <Stack.Navigator screenOptions={{ headerShown: false }}><Stack.Screen name="PatientTabs" component={PatientTabs} /></Stack.Navigator>;
 }

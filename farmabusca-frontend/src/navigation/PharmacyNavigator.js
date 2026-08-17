@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import TabIcon from '../components/TabIcon';
@@ -9,10 +10,22 @@ import ProfileScreen from '../screens/patient/ProfileScreen';
 import EditMedicineScreen from '../screens/pharmacy/EditMedicineScreen';
 import PharmacyProfileSetup from '../screens/pharmacy/PharmacyProfileSetup';
 import PharmacyProfileDocs from '../screens/pharmacy/PharmacyProfileDocs';
+import BrandMark from '../components/BrandMark';
+import { getMyPharmacy } from '../services/api';
 import { colors } from '../theme';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
+const MedicinesStack = createStackNavigator();
+
+function MedicinesNavigator() {
+  return (
+    <MedicinesStack.Navigator screenOptions={{ headerShown: false }}>
+      <MedicinesStack.Screen name="MedicinesList" component={MedicinesScreen} />
+      <MedicinesStack.Screen name="EditMedicine" component={EditMedicineScreen} />
+    </MedicinesStack.Navigator>
+  );
+}
 
 function PharmacyTabs() {
   return (
@@ -34,7 +47,7 @@ function PharmacyTabs() {
       })}
     >
       <Tab.Screen name="Dashboard" component={PharmacyDashboardScreen} options={{ title: 'Painel' }} />
-      <Tab.Screen name="Medicamentos" component={MedicinesScreen} />
+      <Tab.Screen name="Medicamentos" component={MedicinesNavigator} />
       <Tab.Screen name="Adicionar" component={AddMedicineScreen} />
       <Tab.Screen name="Perfil" component={ProfileScreen} />
     </Tab.Navigator>
@@ -42,12 +55,41 @@ function PharmacyTabs() {
 }
 
 export default function PharmacyNavigator() {
+  const [initialRoute, setInitialRoute] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const resolveInitialRoute = async () => {
+      try {
+        const pharmacy = await getMyPharmacy();
+        if (!mounted) return;
+        if (!pharmacy) setInitialRoute('PharmacyProfileSetup');
+        else setInitialRoute('PharmacyTabs');
+      } catch (error) {
+        // A pharmacy account without a profile must start its registration.
+        if (mounted) setInitialRoute('PharmacyProfileSetup');
+      }
+    };
+
+    resolveInitialRoute();
+    return () => { mounted = false; };
+  }, []);
+
+  if (!initialRoute) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <BrandMark />
+        <ActivityIndicator style={{ marginTop: 24 }} size="small" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
-    <Stack.Navigator initialRouteName="PharmacyTabs" screenOptions={{ headerShown: false }}>
+    <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
       <Stack.Screen name="PharmacyTabs" component={PharmacyTabs} />
       <Stack.Screen name="PharmacyProfileSetup" component={PharmacyProfileSetup} />
       <Stack.Screen name="PharmacyProfileDocs" component={PharmacyProfileDocs} />
-      <Stack.Screen name="EditMedicine" component={EditMedicineScreen} />
     </Stack.Navigator>
   );
 }

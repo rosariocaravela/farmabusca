@@ -21,7 +21,7 @@ const listPendingPharmacies = async (req, res, next) => {
 
 const listAllPharmacies = async (req, res, next) => {
   try {
-    const { search, city, province, status } = req.query;
+    const { search, city, district, province, status } = req.query;
     const where = {};
 
     if (search) {
@@ -29,12 +29,16 @@ const listAllPharmacies = async (req, res, next) => {
         { name: { [Op.iLike]: `%${search}%` } },
         { address: { [Op.iLike]: `%${search}%` } },
         { city: { [Op.iLike]: `%${search}%` } },
+        { district: { [Op.iLike]: `%${search}%` } },
         { province: { [Op.iLike]: `%${search}%` } },
       ];
     }
 
     if (city) {
       where.city = { [Op.iLike]: `%${city}%` };
+    }
+    if (district) {
+      where.district = { [Op.iLike]: `%${district}%` };
     }
     if (province) {
       where.province = { [Op.iLike]: `%${province}%` };

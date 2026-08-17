@@ -32,6 +32,10 @@ const Pharmacy = sequelize.define('Pharmacy', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  district: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   phone: {
     type: DataTypes.STRING,
     allowNull: true,

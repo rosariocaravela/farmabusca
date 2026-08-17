@@ -7,8 +7,10 @@ import DashboardCard from '../../components/DashboardCard';
 import SearchBar from '../../components/SearchBar';
 import CustomButton from '../../components/CustomButton';
 import { getMyPharmacy, getMyPharmacyMedicines } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function PharmacyDashboardScreen({ navigation }) {
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -221,7 +223,7 @@ export default function PharmacyDashboardScreen({ navigation }) {
             <Text style={styles.infoLine}>Nome: {pharmacy?.name || 'Minha Farmácia'}</Text>
             <Text style={styles.infoLine}>Localização: {pharmacy?.address || 'Av. 25 de Setembro, Maputo'}</Text>
             <Text style={styles.infoLine}>Horário: {openingHours}</Text>
-            <Text style={styles.infoLine}>Contacto: {pharmacy?.phone || '84 000 000'}</Text>
+            <Text style={styles.infoLine}>Contacto: {pharmacy?.phone || user?.phone || 'Não informado'}</Text>
           </View>
         </>
       )}

@@ -62,7 +62,7 @@ export default function AdminDashboardScreen() {
 
   const handleLogout = async () => {
     try {
-      await logout();
+      await logout('Login');
     } catch (err) {
       console.warn('Logout failed', err);
     }
@@ -131,7 +131,7 @@ export default function AdminDashboardScreen() {
               <Image source={{ uri: pharmacy.image }} style={styles.thumbnail} />
             ) : null}
             <Text style={styles.cardName}>{pharmacy.name || 'Farmácia sem nome'}</Text>
-            <Text style={styles.cardDescription}>{pharmacy.description || 'Sem descrição fornecida.'}</Text>
+            {pharmacy.description ? <Text style={styles.cardDescription}>{pharmacy.description}</Text> : null}
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Proprietário:</Text>
               <Text style={styles.metaValue}>{pharmacy.User?.name || 'Não informado'}</Text>
@@ -142,23 +142,32 @@ export default function AdminDashboardScreen() {
             </View>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Telefone:</Text>
-              <Text style={styles.metaValue}>{pharmacy.phone || 'Não informado'}</Text>
+              <Text style={styles.metaValue}>{pharmacy.phone || pharmacy.User?.phone || 'Não informado'}</Text>
             </View>
+            {pharmacy.whatsapp ? <View style={styles.metaRow}><Text style={styles.metaLabel}>WhatsApp:</Text><Text style={styles.metaValue}>{pharmacy.whatsapp}</Text></View> : null}
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>WhatsApp:</Text>
-              <Text style={styles.metaValue}>{pharmacy.whatsapp || 'Não informado'}</Text>
+              <Text style={styles.metaLabel}>NUIT:</Text>
+              <Text style={styles.metaValue}>{pharmacy.nuit || 'Não informado'}</Text>
             </View>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Endereço:</Text>
               <Text style={styles.metaValue}>{pharmacy.address || 'Não informado'}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Cidade:</Text>
-              <Text style={styles.metaValue}>{pharmacy.city || pharmacy.province || 'Não informado'}</Text>
+              <Text style={styles.metaLabel}>Província:</Text>
+              <Text style={styles.metaValue}>{pharmacy.province || 'Não informado'}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Distrito:</Text>
+              <Text style={styles.metaValue}>{pharmacy.district || pharmacy.city || 'Não informado'}</Text>
             </View>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Horário:</Text>
               <Text style={styles.metaValue}>{pharmacy.openingHours || 'Não informado'}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Documentos:</Text>
+              <Text style={styles.metaValue}>{Array.isArray(pharmacy.documents) ? pharmacy.documents.length : 0} enviados</Text>
             </View>
             <View style={styles.actionRow}>
               <View style={styles.statusBadge}>

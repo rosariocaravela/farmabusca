@@ -56,6 +56,8 @@ export default function ProfileScreen({ navigation }) {
   const [district, setDistrict] = useState('');
   const [address, setAddress] = useState('');
   const [open24h, setOpen24h] = useState(false);
+  const [openingTime, setOpeningTime] = useState('08:00');
+  const [closingTime, setClosingTime] = useState('18:00');
   const [logo, setLogo] = useState(user?.image || null);
   const [logoChanged, setLogoChanged] = useState(false);
   const [pharmacyId, setPharmacyId] = useState(null);
@@ -140,8 +142,15 @@ export default function ProfileScreen({ navigation }) {
         setWhatsapp(pharmacy.whatsapp || user?.phone || '');
         setProvince(pharmacy.province || 'Maputo');
         setCity(pharmacy.city || 'Maputo Cidade');
+        setDistrict(pharmacy.district || '');
         setAddress(pharmacy.address || 'Av. 25 de Setembro, 123');
-        setOpen24h(pharmacy.openingHours === '24h');
+        const savedHours = pharmacy.openingHours || '08:00 - 18:00';
+        setOpen24h(savedHours === '24h');
+        if (savedHours !== '24h') {
+          const [start, end] = savedHours.split('-').map((part) => part.trim());
+          setOpeningTime(start || '08:00');
+          setClosingTime(end || '18:00');
+        }
         setApproved(Boolean(pharmacy.approved));
         setLogo(pharmacy.image || null);
         setPharmacyStats({ views: Number(pharmacy.views || 0) });
@@ -206,7 +215,8 @@ export default function ProfileScreen({ navigation }) {
       payload.append('address', address.trim());
       payload.append('city', city.trim());
       payload.append('province', province.trim());
-      payload.append('openingHours', open24h ? '24h' : '08:00 - 18:00');
+      payload.append('district', district.trim());
+      payload.append('openingHours', open24h ? '24h' : `${openingTime.trim()} - ${closingTime.trim()}`);
 
       if (logoChanged && logo) {
         const imageField = await buildImageField(logo);
@@ -370,7 +380,7 @@ export default function ProfileScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            <CustomInput label="Bairro" placeholder="Bairro" value={district} onChangeText={setDistrict} />
+            <CustomInput label="Distrito" placeholder="Informe o distrito" value={district} onChangeText={setDistrict} />
             <CustomInput label="Endereço" placeholder="Endereço completo" value={address} onChangeText={setAddress} />
           </View>
 
@@ -434,10 +444,20 @@ export default function ProfileScreen({ navigation }) {
                 <Text style={styles.sectionLink}>{open24h ? 'Desativar 24h' : 'Aberto 24 horas'}</Text>
               </TouchableOpacity>
             </View>
+            {!open24h ? (
+              <View style={styles.hoursInputs}>
+                <View style={styles.hourInput}>
+                  <CustomInput label="Hora de abertura" placeholder="08:00" value={openingTime} onChangeText={setOpeningTime} keyboardType="numbers-and-punctuation" />
+                </View>
+                <View style={styles.hourInput}>
+                  <CustomInput label="Hora de encerramento" placeholder="18:00" value={closingTime} onChangeText={setClosingTime} keyboardType="numbers-and-punctuation" />
+                </View>
+              </View>
+            ) : null}
             {defaultHours.map((item) => (
               <View key={item.day} style={styles.scheduleRow}>
                 <Text style={styles.scheduleDay}>{item.day}</Text>
-                <Text style={styles.scheduleTime}>{open24h ? '24 horas' : item.time}</Text>
+                <Text style={styles.scheduleTime}>{open24h ? '24 horas' : `${openingTime} - ${closingTime}`}</Text>
               </View>
             ))}
           </View>
@@ -460,7 +480,7 @@ export default function ProfileScreen({ navigation }) {
 
       <View style={styles.actionsContainer}>
         <CustomButton title={saving ? 'Salvando...' : isPharmacy ? (pharmacyId ? 'Salvar alterações' : 'Criar perfil da farmácia') : 'Atualizar perfil'} loading={saving} onPress={isPharmacy ? saveProfile : savePatientProfile} />
-        <CustomButton title="Sair" style={styles.logoutButton} onPress={logout} />
+        <CustomButton title="Sair" style={styles.logoutButton} onPress={() => logout('Login')} />
       </View>
     </ScrollView>
   );
@@ -570,6 +590,8 @@ const styles = StyleSheet.create({
   optionItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
   optionText: { color: '#0F172A', fontSize: 15, fontWeight: '600' },
   scheduleRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  hoursInputs: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  hourInput: { flex: 1 },
   scheduleDay: { color: '#4B5563', fontSize: 14 },
   scheduleTime: { color: '#111827', fontWeight: '700', fontSize: 14 },
   statsCard: {

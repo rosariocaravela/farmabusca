@@ -7,7 +7,7 @@ const STORAGE_KEY = 'farmabusca-auth';
 const getExpoBackendUrl = () => {
   const extra = Constants.expoConfig?.extra || Constants.manifest?.extra;
   if (extra?.BACKEND_URL) return extra.BACKEND_URL;
-  const backendPort = extra?.BACKEND_PORT || 5001;
+  const backendPort = extra?.BACKEND_PORT || 5000;
   if (Constants.manifest?.debuggerHost) {
     const host = Constants.manifest.debuggerHost.split(':')[0];
     if (host) return `http://${host}:${backendPort}`;
@@ -16,7 +16,7 @@ const getExpoBackendUrl = () => {
 };
 
 // Ajuste este valor para o IP da sua máquina quando usar Expo Go.
-const defaultBackend = 'http://192.168.43.163:5001';
+const defaultBackend = 'http://192.168.43.163:5000';
 const base = (process.env.BACKEND_URL || getExpoBackendUrl() || defaultBackend).replace(/\/$/, '');
 
 const api = axios.create({
@@ -69,7 +69,7 @@ export const createPharmacyProfile = (payload, config = {}) => {
 };
 
 export const updatePharmacyProfile = (payload, config = {}) => {
-  return api.put('/pharmacies/me', payload, config).then((r) => r.data.data);
+  return api.put('/pharmacies/me', payload, { timeout: 60000, ...config }).then((r) => r.data.data);
 };
 
 export const getPharmacies = () => api.get('/pharmacies').then((r) => r.data);

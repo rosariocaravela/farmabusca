@@ -145,7 +145,16 @@ export default function EditMedicineScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={[styles.page, Platform.OS === 'web' && styles.webScroll]}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      nestedScrollEnabled
+      showsVerticalScrollIndicator
+      persistentScrollbar
+      alwaysBounceVertical
+    >
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('PharmacyTabs', { screen: 'Medicamentos' })}>
         <Ionicons name="chevron-back" size={22} color="#1F2937" />
         <Text style={styles.backText}>Voltar</Text>
@@ -240,7 +249,9 @@ export default function EditMedicineScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC' },
+  page: { flex: 1, backgroundColor: '#F7F9FC' },
+  webScroll: { overflowY: 'scroll' },
+  container: { flexGrow: 1, padding: 20, paddingBottom: 80 },
   backButton: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
   backText: { fontSize: 16, color: '#1F2937', marginLeft: 6, fontWeight: '700' },
   title: { fontSize: 24, fontWeight: '800', color: '#333', marginBottom: 16 },

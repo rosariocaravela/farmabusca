@@ -19,7 +19,8 @@ const createProfile = async (req, res, next) => {
   try {
     const existing = await Pharmacy.findOne({ where: { userId: req.user.id } });
     if (existing) {
-      return res.status(400).json({ success: false, message: 'Farmácia já existe para este utilizador' });
+      await existing.update({ ...req.body, phone: req.body.phone || existing.phone || req.user.phone });
+      return res.json({ success: true, message: 'Dados da farmácia atualizados', data: existing });
     }
 
     const image = await getImageUrlFromRequest(req);
@@ -32,11 +33,14 @@ const createProfile = async (req, res, next) => {
           documentsMeta.push({ originalName: file.originalname, url: r?.secure_url || null });
         } catch (err) {
           console.error('Document upload error', err);
+          const uploadError = new Error(`Falha ao guardar o documento ${file.originalname}`);
+          uploadError.statusCode = 502;
+          throw uploadError;
         }
       }
     }
 
-    const pharmacy = await Pharmacy.create({ ...req.body, image, userId: req.user.id, approved: false, documents: documentsMeta });
+    const pharmacy = await Pharmacy.create({ ...req.body, phone: req.body.phone || req.user.phone, image, userId: req.user.id, approved: false, documents: documentsMeta });
     res.status(201).json({ success: true, message: 'Perfil da farmácia criado', data: pharmacy });
   } catch (error) {
     next(error);
@@ -60,6 +64,9 @@ const updateProfile = async (req, res, next) => {
           documentsMeta.push({ originalName: file.originalname, url: r?.secure_url || null });
         } catch (err) {
           console.error('Document upload error', err);
+          const uploadError = new Error(`Falha ao guardar o documento ${file.originalname}`);
+          uploadError.statusCode = 502;
+          throw uploadError;
         }
       }
     }

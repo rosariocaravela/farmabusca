@@ -10,17 +10,15 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authInitialRoute, setAuthInitialRoute] = useState('Login');
 
   useEffect(() => {
     const loadSession = async () => {
       try {
-        const storedSession = await AsyncStorage.getItem(STORAGE_KEY);
-        if (storedSession) {
-          const session = JSON.parse(storedSession);
-          setUser(session.user);
-          setToken(session.token);
-          setAuthToken(session.token);
-        }
+        await AsyncStorage.removeItem(STORAGE_KEY);
+        setUser(null);
+        setToken(null);
+        setAuthToken(null);
       } catch (error) {
         console.log(error);
       } finally {
@@ -32,6 +30,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const saveSession = async ({ user: sessionUser, token: sessionToken }) => {
+    setAuthInitialRoute('Splash');
     setUser(sessionUser);
     setToken(sessionToken);
     setAuthToken(sessionToken);
@@ -50,7 +49,22 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (payload) => {
-    const session = await apiRegister(payload);
+    let session;
+    try {
+      session = await apiRegister(payload);
+    } catch (error) {
+      const message = String(error.response?.data?.message || '').toLowerCase();
+      const isExistingPharmacy =
+        String(payload.role || '').toUpperCase() === 'PHARMACY' &&
+        error.response?.status === 400 &&
+        message.includes('email');
+
+      if (!isExistingPharmacy) throw error;
+
+      // The account was already created before the pharmacy returned from
+      // step 1 to this screen. Authenticate it and resume the onboarding.
+      session = await apiLogin({ email: payload.email, password: payload.password });
+    }
     await saveSession(session);
     return session;
   };
@@ -63,7 +77,8 @@ export const AuthProvider = ({ children }) => {
     return session;
   };
 
-  const logout = async () => {
+  const logout = async (returnTo = 'Login') => {
+    setAuthInitialRoute(typeof returnTo === 'string' ? returnTo : 'Splash');
     setUser(null);
     setToken(null);
     setAuthToken(null);
@@ -71,7 +86,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, forgotPassword, resetPassword, logout, updateSessionUser }}>
+    <AuthContext.Provider value={{ user, token, loading, authInitialRoute, login, register, forgotPassword, resetPassword, logout, updateSessionUser }}>
       {children}
     </AuthContext.Provider>
   );

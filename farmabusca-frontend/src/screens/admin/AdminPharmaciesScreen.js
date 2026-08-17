@@ -7,7 +7,7 @@ import { getAdminPharmacies, updateAdminPharmacyStatus } from '../../services/ap
 
 export default function AdminPharmaciesScreen() {
   const [search, setSearch] = useState('');
-  const [city, setCity] = useState('');
+  const [district, setDistrict] = useState('');
   const [province, setProvince] = useState('');
   const [status, setStatus] = useState('pending');
   const [loading, setLoading] = useState(true);
@@ -17,7 +17,7 @@ export default function AdminPharmaciesScreen() {
   const loadPharmacies = async () => {
     setLoading(true);
     try {
-      const data = await getAdminPharmacies({ search, city, province, status });
+      const data = await getAdminPharmacies({ search, district, province, status });
       setPharmacies(Array.isArray(data) ? data : []);
     } catch (error) {
       console.log('Erro ao carregar farmácias', error.response?.data || error.message || error);
@@ -29,7 +29,7 @@ export default function AdminPharmaciesScreen() {
 
   useEffect(() => {
     loadPharmacies();
-  }, [search, city, province, status]);
+  }, [search, district, province, status]);
 
   const handleStatus = async (id, action) => {
     setUpdatingId(id);
@@ -64,11 +64,11 @@ export default function AdminPharmaciesScreen() {
       <Text style={styles.title}>Gestão de Farmácias</Text>
       <Text style={styles.subtitle}>Busque, aprove ou suspenda farmácias e veja documentos enviados.</Text>
 
-      <SearchBar value={search} onChangeText={setSearch} placeholder="Buscar nome, cidade ou província" />
+      <SearchBar value={search} onChangeText={setSearch} placeholder="Buscar nome, distrito ou província" />
 
       <View style={styles.filterRow}>
         <View style={styles.filterColumn}>
-          <CustomInput label="Cidade" placeholder="Filtrar por cidade" value={city} onChangeText={setCity} />
+          <CustomInput label="Distrito" placeholder="Filtrar por distrito" value={district} onChangeText={setDistrict} />
         </View>
         <View style={[styles.filterColumn, styles.filterColumnRight]}>
           <CustomInput label="Província" placeholder="Filtrar por província" value={province} onChangeText={setProvince} />
@@ -107,7 +107,7 @@ export default function AdminPharmaciesScreen() {
             </View>
 
             <Text style={styles.cardField}>Email: {pharmacy.User?.email || 'Não informado'}</Text>
-            <Text style={styles.cardField}>Telefone: {pharmacy.phone || 'Não informado'}</Text>
+            <Text style={styles.cardField}>Telefone: {pharmacy.phone || pharmacy.User?.phone || 'Não informado'}</Text>
             <Text style={styles.cardField}>Documentos: {Array.isArray(pharmacy.documents) ? pharmacy.documents.length : 0}</Text>
 
             <View style={styles.actionsRow}>

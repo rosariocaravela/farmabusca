@@ -9,14 +9,14 @@ import BrandMark from '../components/BrandMark';
 import { colors } from '../theme';
 
 export default function AppNavigator() {
-  const { user, loading } = useAuth();
+  const { user, loading, authInitialRoute } = useAuth();
 
   if (loading) {
     return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}><BrandMark /><ActivityIndicator style={{ marginTop: 24 }} size="small" color={colors.primary} /></View>;
   }
 
   if (!user) {
-    return <AuthNavigator />;
+    return <AuthNavigator initialRouteName={authInitialRoute} />;
   }
 
   if (user.role?.toLowerCase() === 'admin') {
