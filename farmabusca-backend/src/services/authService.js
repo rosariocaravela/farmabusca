@@ -3,13 +3,17 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 const { User } = require('../models');
+const {
+  normalizeEmail,
+  normalizeSelfRegisterRole,
+  sanitizeUser,
+} = require('../utils/authPolicy');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET deve ser configurado nas variáveis de ambiente');
 }
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
-const SELF_REGISTER_ROLES = new Set(['PATIENT', 'PHARMACY']);
 
 const hashPassword = async (password) => bcrypt.hash(password, 10);
 
@@ -17,23 +21,9 @@ const comparePassword = async (password, hashedPassword) => bcrypt.compare(passw
 
 const signToken = (user) => jwt.sign({ id: user.id, role: String(user.role || 'PATIENT').toUpperCase() }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
-const sanitizeUser = (user) => {
-  const data = user.toJSON ? user.toJSON() : { ...user };
-  delete data.password;
-  delete data.resetPasswordToken;
-  delete data.resetPasswordExpires;
-  return data;
-};
-
 const registerUser = async ({ name, email, phone, password, role = 'PATIENT' }) => {
-  const normalizedRole = String(role || 'PATIENT').toUpperCase();
-  if (!SELF_REGISTER_ROLES.has(normalizedRole)) {
-    const error = new Error('Tipo de conta inválido');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const normalizedRole = normalizeSelfRegisterRole(role);
+  const normalizedEmail = normalizeEmail(email);
   const existingUser = await User.findOne({ where: { email: normalizedEmail } });
   if (existingUser) {
     const error = new Error('Email já existe');
@@ -53,7 +43,7 @@ const registerUser = async ({ name, email, phone, password, role = 'PATIENT' }) 
 };
 
 const loginUser = async ({ email, password }) => {
-  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(email);
   const user = await User.findOne({ where: { email: normalizedEmail } });
   if (!user) {
     const error = new Error('Credenciais inválidas');

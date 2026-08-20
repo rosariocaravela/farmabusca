@@ -15,12 +15,25 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadSession = async () => {
       try {
+        const storedSession = await AsyncStorage.getItem(STORAGE_KEY);
+        if (!storedSession) return;
+
+        const session = JSON.parse(storedSession);
+        if (!session?.user || !session?.token) {
+          await AsyncStorage.removeItem(STORAGE_KEY);
+          return;
+        }
+
+        setUser(session.user);
+        setToken(session.token);
+        setAuthToken(session.token);
+        setAuthInitialRoute('Splash');
+      } catch (error) {
+        console.log('Não foi possível restaurar a sessão:', error);
         await AsyncStorage.removeItem(STORAGE_KEY);
         setUser(null);
         setToken(null);
         setAuthToken(null);
-      } catch (error) {
-        console.log(error);
       } finally {
         setLoading(false);
       }

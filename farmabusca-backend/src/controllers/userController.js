@@ -1,6 +1,6 @@
 const { User, Pharmacy } = require('../models');
 const { uploadImage } = require('../services/cloudinaryService');
-const { sanitizeUser } = require('../services/authService');
+const { sanitizeUser } = require('../utils/authPolicy');
 
 const USER_PROFILE_FIELDS = ['name', 'phone'];
 
