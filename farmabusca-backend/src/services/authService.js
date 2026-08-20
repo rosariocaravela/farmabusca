@@ -9,6 +9,7 @@ if (!JWT_SECRET) {
   throw new Error('JWT_SECRET deve ser configurado nas variáveis de ambiente');
 }
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const SELF_REGISTER_ROLES = new Set(['PATIENT', 'PHARMACY']);
 
 const hashPassword = async (password) => bcrypt.hash(password, 10);
 
@@ -26,8 +27,14 @@ const sanitizeUser = (user) => {
 
 const registerUser = async ({ name, email, phone, password, role = 'PATIENT' }) => {
   const normalizedRole = String(role || 'PATIENT').toUpperCase();
+  if (!SELF_REGISTER_ROLES.has(normalizedRole)) {
+    const error = new Error('Tipo de conta inválido');
+    error.statusCode = 400;
+    throw error;
+  }
 
-  const existingUser = await User.findOne({ where: { email } });
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const existingUser = await User.findOne({ where: { email: normalizedEmail } });
   if (existingUser) {
     const error = new Error('Email já existe');
     error.statusCode = 400;
@@ -35,12 +42,19 @@ const registerUser = async ({ name, email, phone, password, role = 'PATIENT' }) 
   }
 
   const hashedPassword = await hashPassword(password);
-  const user = await User.create({ name, email, phone, password: hashedPassword, role: normalizedRole });
+  const user = await User.create({
+    name: String(name || '').trim(),
+    email: normalizedEmail,
+    phone: String(phone || '').trim(),
+    password: hashedPassword,
+    role: normalizedRole,
+  });
   return { user: sanitizeUser(user), token: signToken(user) };
 };
 
 const loginUser = async ({ email, password }) => {
-  const user = await User.findOne({ where: { email } });
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const user = await User.findOne({ where: { email: normalizedEmail } });
   if (!user) {
     const error = new Error('Credenciais inválidas');
     error.statusCode = 401;
@@ -102,4 +116,5 @@ module.exports = {
   forgotPasswordUser,
   resetPasswordUser,
   hashPassword,
+  sanitizeUser,
 };

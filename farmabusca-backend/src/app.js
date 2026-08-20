@@ -1,6 +1,7 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const swaggerUi = require('swagger-ui-express');
 const { connectDb } = require('./config/database');
 const authRoutes = require('./routes/authRoutes');
@@ -10,8 +11,6 @@ const medicineRoutes = require('./routes/medicineRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
 const errorMiddleware = require('./middlewares/errorMiddleware');
-
-dotenv.config();
 
 const app = express();
 
