@@ -4,6 +4,7 @@ const Pharmacy = require('./Pharmacy');
 const Category = require('./Category');
 const Medicine = require('./Medicine');
 const Favorite = require('./Favorite');
+const Payment = require('./Payment');
 
 User.hasOne(Pharmacy, { foreignKey: 'userId' });
 Pharmacy.belongsTo(User, { foreignKey: 'userId' });
@@ -20,4 +21,9 @@ Favorite.belongsTo(User, { foreignKey: 'userId' });
 Medicine.hasMany(Favorite, { foreignKey: 'medicineId' });
 Favorite.belongsTo(Medicine, { foreignKey: 'medicineId' });
 
-module.exports = { sequelize, User, Pharmacy, Category, Medicine, Favorite };
+User.hasMany(Payment, { foreignKey: 'userId' });
+Payment.belongsTo(User, { foreignKey: 'userId' });
+Medicine.hasMany(Payment, { foreignKey: 'medicineId' });
+Payment.belongsTo(Medicine, { foreignKey: 'medicineId' });
+
+module.exports = { sequelize, User, Pharmacy, Category, Medicine, Favorite, Payment };

@@ -8,6 +8,7 @@ import FavoritesScreen from '../screens/patient/FavoritesScreen';
 import ProfileScreen from '../screens/patient/ProfileScreen';
 import MedicineDetailsScreen from '../screens/patient/MedicineDetailsScreen';
 import PharmacyDetailsScreen from '../screens/patient/PharmacyDetailsScreen';
+import PaymentScreen from '../screens/patient/PaymentScreen';
 import { colors } from '../theme';
 
 const Tab = createBottomTabNavigator();
@@ -22,6 +23,7 @@ function PatientSection({ navigator: SectionStack, initialName, initialComponent
       <SectionStack.Screen name={initialName} component={initialComponent} />
       <SectionStack.Screen name="MedicineDetails" component={MedicineDetailsScreen} />
       <SectionStack.Screen name="PharmacyDetails" component={PharmacyDetailsScreen} />
+      <SectionStack.Screen name="Payment" component={PaymentScreen} />
     </SectionStack.Navigator>
   );
 }

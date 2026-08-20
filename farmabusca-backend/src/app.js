@@ -10,6 +10,7 @@ const pharmacyRoutes = require('./routes/pharmacyRoutes');
 const medicineRoutes = require('./routes/medicineRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 const errorMiddleware = require('./middlewares/errorMiddleware');
 
 const app = express();
@@ -37,6 +38,7 @@ const swaggerSpec = {
     '/medicines/search': { get: { summary: 'Pesquisar medicamentos' } },
     '/pharmacies': { get: { summary: 'Listar farmácias' } },
     '/favorites': { get: { summary: 'Listar favoritos' }, post: { summary: 'Adicionar favorito' } },
+    '/payments': { post: { summary: 'Iniciar pagamento da reserva de 25 MT' } },
   },
 };
 
@@ -49,6 +51,7 @@ app.get('/', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/favorites', favoriteRoutes);
+app.use('/api/payments', paymentRoutes);
 app.use('/api/pharmacies', pharmacyRoutes);
 app.use('/api/medicines', medicineRoutes);
 app.use('/api/admin', adminRoutes);

@@ -91,5 +91,7 @@ export const updateMedicine = (id, data, config = {}) => api.put(`/medicines/${i
 export const getFavorites = () => api.get('/favorites').then((r) => r.data);
 export const addFavorite = (medicineId) => api.post('/favorites', { medicineId }).then((r) => r.data);
 export const removeFavorite = (medicineId) => api.delete(`/favorites/${medicineId}`).then((r) => r.data);
+export const initiateReservationPayment = (medicineId, phone, requestId) => api.post('/payments', { medicineId, phone, requestId }).then((r) => r.data);
+export const getReservationPaymentStatus = (id) => api.get(`/payments/${id}`).then((r) => r.data);
 
 export default api;
