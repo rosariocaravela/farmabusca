@@ -2,9 +2,22 @@ const { Medicine, Category, Pharmacy } = require('../models');
 const { Op } = require('sequelize');
 const { uploadImage } = require('../services/cloudinaryService');
 
+const publicPharmacyInclude = {
+  model: Pharmacy,
+  where: { approved: true, suspended: false },
+  required: true,
+};
+
+const findManageablePharmacy = (userId) => Pharmacy.findOne({
+  where: { userId, approved: true, suspended: false },
+});
+
 const listMedicines = async (req, res, next) => {
   try {
-    const medicines = await Medicine.findAll({ include: [Category, Pharmacy], where: { stockStatus: ['AVAILABLE', 'LOW_STOCK'] } });
+    const medicines = await Medicine.findAll({
+      include: [Category, publicPharmacyInclude],
+      where: { stockStatus: ['AVAILABLE', 'LOW_STOCK'] },
+    });
     res.json({ success: true, message: 'Medicamentos listados', data: medicines });
   } catch (error) {
     next(error);
@@ -13,10 +26,17 @@ const listMedicines = async (req, res, next) => {
 
 const searchMedicines = async (req, res, next) => {
   try {
-    const { name } = req.query;
+    const name = String(req.query.name || '').trim();
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Informe o nome do medicamento' });
+    }
+
     const medicines = await Medicine.findAll({
-      where: { name: { [Op.like]: `%${name}%` } },
-      include: [Category, Pharmacy],
+      where: {
+        name: { [Op.iLike]: `%${name}%` },
+        stockStatus: ['AVAILABLE', 'LOW_STOCK'],
+      },
+      include: [Category, publicPharmacyInclude],
     });
     res.json({ success: true, message: 'Pesquisa concluída', data: medicines });
   } catch (error) {
@@ -26,7 +46,10 @@ const searchMedicines = async (req, res, next) => {
 
 const getMedicineById = async (req, res, next) => {
   try {
-    const medicine = await Medicine.findByPk(req.params.id, { include: [Category, Pharmacy] });
+    const medicine = await Medicine.findOne({
+      where: { id: req.params.id, stockStatus: ['AVAILABLE', 'LOW_STOCK'] },
+      include: [Category, publicPharmacyInclude],
+    });
     if (!medicine) {
       return res.status(404).json({ success: false, message: 'Medicamento não encontrado' });
     }
@@ -38,9 +61,12 @@ const getMedicineById = async (req, res, next) => {
 
 const createMedicine = async (req, res, next) => {
   try {
-    const pharmacy = await Pharmacy.findOne({ where: { userId: req.user.id } });
+    const pharmacy = await findManageablePharmacy(req.user.id);
     if (!pharmacy) {
-      return res.status(403).json({ success: false, message: 'Farmácia não encontrada para este usuário' });
+      return res.status(403).json({
+        success: false,
+        message: 'A farmácia deve existir, estar aprovada e não estar suspensa',
+      });
     }
 
     let categoryId = req.body.categoryId;
@@ -88,7 +114,7 @@ const createMedicine = async (req, res, next) => {
 
 const updateMedicine = async (req, res, next) => {
   try {
-    const pharmacy = await Pharmacy.findOne({ where: { userId: req.user.id } });
+    const pharmacy = await findManageablePharmacy(req.user.id);
     const medicine = await Medicine.findByPk(req.params.id);
     if (!pharmacy || !medicine || medicine.pharmacyId !== pharmacy.id) {
       return res.status(403).json({ success: false, message: 'Não pode gerir este medicamento' });
@@ -108,8 +134,9 @@ const updateMedicine = async (req, res, next) => {
     if (req.body.name !== undefined) medicine.name = req.body.name;
     if (req.body.description !== undefined) medicine.description = req.body.description;
     if (req.body.price !== undefined) medicine.price = Number(req.body.price) || 0;
-    if (req.body.stock !== undefined) {
-      const quantity = Number(req.body.stock) || 0;
+    const quantityInput = req.body.quantity !== undefined ? req.body.quantity : req.body.stock;
+    if (quantityInput !== undefined) {
+      const quantity = Math.max(0, Number(quantityInput) || 0);
       medicine.quantity = quantity;
       medicine.stockStatus = quantity > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK';
     }
@@ -142,9 +169,9 @@ const updateMedicine = async (req, res, next) => {
 
 const deleteMedicine = async (req, res, next) => {
   try {
-    const pharmacy = await Pharmacy.findOne({ where: { userId: req.user.id } });
+    const pharmacy = await findManageablePharmacy(req.user.id);
     const medicine = await Medicine.findByPk(req.params.id);
-    if (!medicine || medicine.pharmacyId !== pharmacy.id) {
+    if (!pharmacy || !medicine || medicine.pharmacyId !== pharmacy.id) {
       return res.status(403).json({ success: false, message: 'Não pode gerir este medicamento' });
     }
 

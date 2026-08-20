@@ -4,7 +4,10 @@ const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 const { User } = require('../models');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'farmabusca-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET deve ser configurado nas variáveis de ambiente');
+}
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 const hashPassword = async (password) => bcrypt.hash(password, 10);

@@ -1,6 +1,30 @@
 const { Pharmacy, Medicine, User, Category } = require('../models');
 const { uploadImage } = require('../services/cloudinaryService');
 
+const PROFILE_FIELDS = [
+  'name',
+  'description',
+  'address',
+  'city',
+  'province',
+  'district',
+  'phone',
+  'whatsapp',
+  'openingHours',
+  'companyName',
+  'nuit',
+  'licenseNumber',
+  'location',
+  'responsibleName',
+  'responsibleRole',
+  'responsibleContact',
+];
+
+const getProfilePayload = (body = {}) => PROFILE_FIELDS.reduce((payload, field) => {
+  if (body[field] !== undefined) payload[field] = body[field];
+  return payload;
+}, {});
+
 const getImageUrlFromRequest = async (req) => {
   let imageUrl = req.body.image || req.body.imageUrl;
   // single file under 'image'
@@ -17,9 +41,13 @@ const getImageUrlFromRequest = async (req) => {
 
 const createProfile = async (req, res, next) => {
   try {
+    const profileData = getProfilePayload(req.body);
     const existing = await Pharmacy.findOne({ where: { userId: req.user.id } });
     if (existing) {
-      await existing.update({ ...req.body, phone: req.body.phone || existing.phone || req.user.phone });
+      await existing.update({
+        ...profileData,
+        phone: profileData.phone || existing.phone || req.user.phone,
+      });
       return res.json({ success: true, message: 'Dados da farmácia atualizados', data: existing });
     }
 
@@ -40,7 +68,15 @@ const createProfile = async (req, res, next) => {
       }
     }
 
-    const pharmacy = await Pharmacy.create({ ...req.body, phone: req.body.phone || req.user.phone, image, userId: req.user.id, approved: false, documents: documentsMeta });
+    const pharmacy = await Pharmacy.create({
+      ...profileData,
+      phone: profileData.phone || req.user.phone,
+      image,
+      userId: req.user.id,
+      approved: false,
+      suspended: false,
+      documents: documentsMeta,
+    });
     res.status(201).json({ success: true, message: 'Perfil da farmácia criado', data: pharmacy });
   } catch (error) {
     next(error);
@@ -71,7 +107,11 @@ const updateProfile = async (req, res, next) => {
       }
     }
 
-    await pharmacy.update({ ...req.body, ...(image ? { image } : {}), documents: documentsMeta });
+    await pharmacy.update({
+      ...getProfilePayload(req.body),
+      ...(image ? { image } : {}),
+      documents: documentsMeta,
+    });
     res.json({ success: true, message: 'Perfil atualizado', data: pharmacy });
   } catch (error) {
     next(error);
@@ -112,7 +152,10 @@ const listPharmacies = async (req, res, next) => {
 
 const getPharmacyById = async (req, res, next) => {
   try {
-    const pharmacy = await Pharmacy.findByPk(req.params.id, { include: [User] });
+    const pharmacy = await Pharmacy.findOne({
+      where: { id: req.params.id, approved: true, suspended: false },
+      include: [User],
+    });
     if (!pharmacy) {
       return res.status(404).json({ success: false, message: 'Farmácia não encontrada' });
     }
