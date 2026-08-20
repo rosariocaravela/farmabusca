@@ -88,12 +88,16 @@ const createMedicine = async (req, res, next) => {
       }
     }
 
-    const quantity = Number(req.body.quantity) || 0;
-    const stockStatus = req.body.stockStatus
-      ? req.body.stockStatus
-      : quantity > 0
-        ? 'AVAILABLE'
-        : 'OUT_OF_STOCK';
+    const validStockStatuses = ['AVAILABLE', 'LOW_STOCK', 'OUT_OF_STOCK'];
+    const requestedStockStatus = req.body.stockStatus;
+    if (requestedStockStatus && !validStockStatuses.includes(requestedStockStatus)) {
+      return res.status(400).json({ success: false, message: 'Estado do stock inválido' });
+    }
+
+    const quantity = Math.max(0, Number(req.body.quantity) || 0);
+    const stockStatus = quantity === 0
+      ? 'OUT_OF_STOCK'
+      : requestedStockStatus || 'AVAILABLE';
 
     const medicine = await Medicine.create({
       name: req.body.name,
@@ -134,14 +138,23 @@ const updateMedicine = async (req, res, next) => {
     if (req.body.name !== undefined) medicine.name = req.body.name;
     if (req.body.description !== undefined) medicine.description = req.body.description;
     if (req.body.price !== undefined) medicine.price = Number(req.body.price) || 0;
+    const validStockStatuses = ['AVAILABLE', 'LOW_STOCK', 'OUT_OF_STOCK'];
+    const requestedStockStatus = req.body.stockStatus;
+    if (requestedStockStatus !== undefined && !validStockStatuses.includes(requestedStockStatus)) {
+      return res.status(400).json({ success: false, message: 'Estado do stock inválido' });
+    }
+
     const quantityInput = req.body.quantity !== undefined ? req.body.quantity : req.body.stock;
     if (quantityInput !== undefined) {
       const quantity = Math.max(0, Number(quantityInput) || 0);
       medicine.quantity = quantity;
-      medicine.stockStatus = quantity > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK';
-    }
-    if (req.body.stockStatus !== undefined) {
-      medicine.stockStatus = req.body.stockStatus;
+      medicine.stockStatus = quantity === 0
+        ? 'OUT_OF_STOCK'
+        : requestedStockStatus || 'AVAILABLE';
+    } else if (requestedStockStatus !== undefined) {
+      medicine.stockStatus = medicine.quantity === 0
+        ? 'OUT_OF_STOCK'
+        : requestedStockStatus;
     }
 
     if (req.body.category) {

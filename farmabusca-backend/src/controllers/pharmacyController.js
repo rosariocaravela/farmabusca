@@ -141,9 +141,30 @@ const listMyMedicines = async (req, res, next) => {
   }
 };
 
+const getMyMedicineById = async (req, res, next) => {
+  try {
+    const pharmacy = await Pharmacy.findOne({ where: { userId: req.user.id } });
+    if (!pharmacy) {
+      return res.status(404).json({ success: false, message: 'Farmácia não encontrada' });
+    }
+
+    const medicine = await Medicine.findOne({
+      where: { id: req.params.id, pharmacyId: pharmacy.id },
+      include: [Category],
+    });
+    if (!medicine) {
+      return res.status(404).json({ success: false, message: 'Medicamento não encontrado' });
+    }
+
+    res.json({ success: true, message: 'Medicamento da farmácia carregado', data: medicine });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const listPharmacies = async (req, res, next) => {
   try {
-    const pharmacies = await Pharmacy.findAll({ where: { approved: true }, include: [User] });
+    const pharmacies = await Pharmacy.findAll({ where: { approved: true, suspended: false }, include: [User] });
     res.json({ success: true, message: 'Farmácias listadas', data: pharmacies });
   } catch (error) {
     next(error);
@@ -165,4 +186,12 @@ const getPharmacyById = async (req, res, next) => {
   }
 };
 
-module.exports = { createProfile, updateProfile, getMyPharmacy, listMyMedicines, listPharmacies, getPharmacyById };
+module.exports = {
+  createProfile,
+  updateProfile,
+  getMyPharmacy,
+  listMyMedicines,
+  getMyMedicineById,
+  listPharmacies,
+  getPharmacyById,
+};

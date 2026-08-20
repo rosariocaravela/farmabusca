@@ -75,6 +75,7 @@ export const updatePharmacyProfile = (payload, config = {}) => {
 export const getPharmacies = () => api.get('/pharmacies').then((r) => r.data);
 export const getPharmacyById = (id) => api.get(`/pharmacies/${id}`).then((r) => r.data?.data || r.data);
 export const getMyPharmacyMedicines = () => api.get('/pharmacies/me/medicines').then((r) => r.data?.data || r.data);
+export const getMyPharmacyMedicineById = (id) => api.get(`/pharmacies/me/medicines/${id}`).then((r) => r.data?.data || r.data);
 
 export const getPendingPharmacies = () => api.get('/admin/pharmacies/pending').then((r) => r.data.data);
 export const getAdminPharmacies = (params) => api.get('/admin/pharmacies', { params }).then((r) => r.data.data);

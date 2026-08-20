@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
-import { getMedicineById, updateMedicine } from '../../services/api';
+import { getMyPharmacyMedicineById, updateMedicine } from '../../services/api';
 
 const defaultCategories = ['Analgésicos', 'Antibióticos', 'Vitaminas', 'Anti-inflamatórios', 'Gripes e Resfriados', 'Digestivos', 'Antialérgicos', 'Dermatológicos', 'Vitaminas e Suplementos', 'Medicamentos Genéricos', 'Outro'];
 
@@ -32,7 +32,7 @@ export default function EditMedicineScreen() {
       if (!id) return;
       setLoading(true);
       try {
-        const response = await getMedicineById(id);
+        const response = await getMyPharmacyMedicineById(id);
         const data = response?.data || response;
         if (!mounted) return;
         setMedicine(data);

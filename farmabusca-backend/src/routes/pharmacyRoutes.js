@@ -14,7 +14,15 @@ const upload = multer({
     callback(null, true);
   },
 });
-const { createProfile, updateProfile, getMyPharmacy, listMyMedicines, listPharmacies, getPharmacyById } = require('../controllers/pharmacyController');
+const {
+  createProfile,
+  updateProfile,
+  getMyPharmacy,
+  listMyMedicines,
+  getMyMedicineById,
+  listPharmacies,
+  getPharmacyById,
+} = require('../controllers/pharmacyController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const roleMiddleware = require('../middlewares/roleMiddleware');
 
@@ -25,6 +33,7 @@ router.post('/me', authMiddleware, roleMiddleware(['PHARMACY']), upload.fields([
 router.put('/me', authMiddleware, roleMiddleware(['PHARMACY']), upload.fields([{ name: 'image', maxCount: 1 }, { name: 'documents', maxCount: 10 }]), updateProfile);
 router.get('/me', authMiddleware, roleMiddleware(['PHARMACY']), getMyPharmacy);
 router.get('/me/medicines', authMiddleware, roleMiddleware(['PHARMACY']), listMyMedicines);
+router.get('/me/medicines/:id', authMiddleware, roleMiddleware(['PHARMACY']), getMyMedicineById);
 router.get('/:id', getPharmacyById);
 
 module.exports = router;
