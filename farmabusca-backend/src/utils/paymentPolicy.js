@@ -1,4 +1,5 @@
 const RESERVATION_FEE_MZN = 25;
+const PLAN_PRICES_MZN = { essential: 99, premium: 199 };
 const FORBIDDEN_PIN_FIELDS = new Set(['pin', 'mpesapin', 'mpesa_pin', 'walletpin', 'wallet_pin']);
 
 const normalizeMozambiquePhone = (value) => {
@@ -19,4 +20,6 @@ const createReservationReference = () => {
   return `FBR-${timestamp}-${random}`;
 };
 
-module.exports = { RESERVATION_FEE_MZN, assertNoPin, createReservationReference, normalizeMozambiquePhone };
+const createPlanReference = () => `FBP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+module.exports = { RESERVATION_FEE_MZN, PLAN_PRICES_MZN, assertNoPin, createReservationReference, createPlanReference, normalizeMozambiquePhone };

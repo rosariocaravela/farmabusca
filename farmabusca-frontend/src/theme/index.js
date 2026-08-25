@@ -1,6 +1,6 @@
 export const colors = {
   primary: '#16A34A', primaryDark: '#166534', primaryLight: '#DCFCE7',
-  primaryMuted: '#F0FDF4', support: '#2563EB', background: '#F6F8F7', surface: '#FFFFFF',
+  primaryMuted: '#F0FDF4', support: '#2563EB', background: '#EEF5F1', surface: '#FFFFFF',
   surfaceMuted: '#F1F5F3', text: '#10231A', textSecondary: '#62706A', border: '#DDE6E1',
   warning: '#F59E0B', warningLight: '#FEF3C7', error: '#DC2626',
   errorLight: '#FEE2E2', successLight: '#DCFCE7', disabled: '#CBD5E1',

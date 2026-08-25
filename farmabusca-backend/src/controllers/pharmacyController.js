@@ -39,6 +39,26 @@ const getImageUrlFromRequest = async (req) => {
   return imageUrl;
 };
 
+const getEstablishmentPhoto = (documents = []) => {
+  const namedPhoto = documents.find((document) =>
+    document?.url && /^estabelecimento-/i.test(document.originalName || '')
+  );
+  if (namedPhoto?.url) return namedPhoto.url;
+
+  // Cadastros antigos guardavam NUIT, licença e fotos em sequência,
+  // todos com o nome genérico "documento-N".
+  const legacyPhoto = documents.slice(2).find((document) =>
+    document?.url && /^documento-\d+\.(jpe?g|png|webp)$/i.test(document.originalName || '')
+  );
+  return legacyPhoto?.url || null;
+};
+
+const withPublicImage = (pharmacy) => {
+  if (!pharmacy) return pharmacy;
+  const data = typeof pharmacy.toJSON === 'function' ? pharmacy.toJSON() : pharmacy;
+  return { ...data, image: data.image || getEstablishmentPhoto(data.documents) };
+};
+
 const createProfile = async (req, res, next) => {
   try {
     const profileData = getProfilePayload(req.body);
@@ -51,7 +71,7 @@ const createProfile = async (req, res, next) => {
       return res.json({ success: true, message: 'Dados da farmácia atualizados', data: existing });
     }
 
-    const image = await getImageUrlFromRequest(req);
+    let image = await getImageUrlFromRequest(req);
     // handle documents uploads
     let documentsMeta = [];
     if (req.files && req.files.documents && req.files.documents.length) {
@@ -59,6 +79,7 @@ const createProfile = async (req, res, next) => {
         try {
           const r = await uploadImage(file.buffer, 'pharmacy_documents');
           documentsMeta.push({ originalName: file.originalname, url: r?.secure_url || null });
+          if (!image && /^estabelecimento-/i.test(file.originalname || '')) image = r?.secure_url || null;
         } catch (err) {
           console.error('Document upload error', err);
           const uploadError = new Error(`Falha ao guardar o documento ${file.originalname}`);
@@ -90,7 +111,7 @@ const updateProfile = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Farmácia não encontrada' });
     }
 
-    const image = await getImageUrlFromRequest(req);
+    let image = await getImageUrlFromRequest(req);
     // handle documents uploads (append)
     let documentsMeta = pharmacy.documents || [];
     if (req.files && req.files.documents && req.files.documents.length) {
@@ -98,6 +119,7 @@ const updateProfile = async (req, res, next) => {
         try {
           const r = await uploadImage(file.buffer, 'pharmacy_documents');
           documentsMeta.push({ originalName: file.originalname, url: r?.secure_url || null });
+          if (!image && /^estabelecimento-/i.test(file.originalname || '')) image = r?.secure_url || null;
         } catch (err) {
           console.error('Document upload error', err);
           const uploadError = new Error(`Falha ao guardar o documento ${file.originalname}`);
@@ -165,7 +187,7 @@ const getMyMedicineById = async (req, res, next) => {
 const listPharmacies = async (req, res, next) => {
   try {
     const pharmacies = await Pharmacy.findAll({ where: { approved: true, suspended: false }, include: [User] });
-    res.json({ success: true, message: 'Farmácias listadas', data: pharmacies });
+    res.json({ success: true, message: 'Farmácias listadas', data: pharmacies.map(withPublicImage) });
   } catch (error) {
     next(error);
   }
@@ -180,7 +202,18 @@ const getPharmacyById = async (req, res, next) => {
     if (!pharmacy) {
       return res.status(404).json({ success: false, message: 'Farmácia não encontrada' });
     }
-    res.json({ success: true, message: 'Farmácia carregada', data: pharmacy });
+    res.json({ success: true, message: 'Farmácia carregada', data: withPublicImage(pharmacy) });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const listPharmacyMedicines = async (req, res, next) => {
+  try {
+    const pharmacy = await Pharmacy.findOne({ where: { id: req.params.id, approved: true, suspended: false } });
+    if (!pharmacy) return res.status(404).json({ success: false, message: 'Farmácia não encontrada' });
+    const medicines = await Medicine.findAll({ where: { pharmacyId: pharmacy.id, stockStatus: ['AVAILABLE', 'LOW_STOCK'] }, include: [Category] });
+    res.json({ success: true, message: 'Medicamentos da farmácia listados', data: medicines });
   } catch (error) {
     next(error);
   }
@@ -194,4 +227,5 @@ module.exports = {
   getMyMedicineById,
   listPharmacies,
   getPharmacyById,
+  listPharmacyMedicines,
 };

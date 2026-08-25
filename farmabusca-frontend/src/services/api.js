@@ -8,15 +8,16 @@ const getExpoBackendUrl = () => {
   const extra = Constants.expoConfig?.extra || Constants.manifest?.extra;
   if (extra?.BACKEND_URL) return extra.BACKEND_URL;
   const backendPort = extra?.BACKEND_PORT || 5000;
-  if (Constants.manifest?.debuggerHost) {
-    const host = Constants.manifest.debuggerHost.split(':')[0];
+  const hostUri = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
+  if (hostUri) {
+    const host = hostUri.split(':')[0];
     if (host) return `http://${host}:${backendPort}`;
   }
   return null;
 };
 
 // Ajuste este valor para o IP da sua máquina quando usar Expo Go.
-const defaultBackend = 'http://192.168.43.163:5000';
+const defaultBackend = 'http://192.168.43.163:5000'; // Substitua pelo IP da sua máquina
 const base = (process.env.BACKEND_URL || getExpoBackendUrl() || defaultBackend).replace(/\/$/, '');
 
 const api = axios.create({
@@ -74,6 +75,7 @@ export const updatePharmacyProfile = (payload, config = {}) => {
 
 export const getPharmacies = () => api.get('/pharmacies').then((r) => r.data);
 export const getPharmacyById = (id) => api.get(`/pharmacies/${id}`).then((r) => r.data?.data || r.data);
+export const getPharmacyMedicines = (id) => api.get(`/pharmacies/${id}/medicines`).then((r) => r.data);
 export const getMyPharmacyMedicines = () => api.get('/pharmacies/me/medicines').then((r) => r.data?.data || r.data);
 export const getMyPharmacyMedicineById = (id) => api.get(`/pharmacies/me/medicines/${id}`).then((r) => r.data?.data || r.data);
 
@@ -92,6 +94,8 @@ export const getFavorites = () => api.get('/favorites').then((r) => r.data);
 export const addFavorite = (medicineId) => api.post('/favorites', { medicineId }).then((r) => r.data);
 export const removeFavorite = (medicineId) => api.delete(`/favorites/${medicineId}`).then((r) => r.data);
 export const initiateReservationPayment = (medicineId, phone, requestId) => api.post('/payments', { medicineId, phone, requestId }).then((r) => r.data);
+export const initiatePlanPayment = (plan, phone, requestId) => api.post('/payments/plans', { plan, phone, requestId }).then((r) => r.data);
 export const getReservationPaymentStatus = (id) => api.get(`/payments/${id}`).then((r) => r.data);
+export const askAssistant = (question, medicineId) => api.post('/assistant', { question, medicineId }).then((r) => r.data);
 
 export default api;

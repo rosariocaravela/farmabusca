@@ -22,6 +22,7 @@ const {
   getMyMedicineById,
   listPharmacies,
   getPharmacyById,
+  listPharmacyMedicines,
 } = require('../controllers/pharmacyController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const roleMiddleware = require('../middlewares/roleMiddleware');
@@ -34,6 +35,7 @@ router.put('/me', authMiddleware, roleMiddleware(['PHARMACY']), upload.fields([{
 router.get('/me', authMiddleware, roleMiddleware(['PHARMACY']), getMyPharmacy);
 router.get('/me/medicines', authMiddleware, roleMiddleware(['PHARMACY']), listMyMedicines);
 router.get('/me/medicines/:id', authMiddleware, roleMiddleware(['PHARMACY']), getMyMedicineById);
+router.get('/:id/medicines', listPharmacyMedicines);
 router.get('/:id', getPharmacyById);
 
 module.exports = router;

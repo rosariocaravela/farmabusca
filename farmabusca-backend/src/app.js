@@ -11,6 +11,7 @@ const medicineRoutes = require('./routes/medicineRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const assistantRoutes = require('./routes/assistantRoutes');
 const errorMiddleware = require('./middlewares/errorMiddleware');
 
 const app = express();
@@ -52,6 +53,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/assistant', assistantRoutes);
 app.use('/api/pharmacies', pharmacyRoutes);
 app.use('/api/medicines', medicineRoutes);
 app.use('/api/admin', adminRoutes);

@@ -1,12 +1,12 @@
 const { RESERVATION_FEE_MZN } = require('../utils/paymentPolicy');
 
-const requestMpesaPayment = async ({ phone, reference }) => {
+const requestMpesaPayment = async ({ phone, reference, amount = RESERVATION_FEE_MZN }) => {
   const mode = String(process.env.PAYMENT_PROVIDER_MODE || 'mock').toLowerCase();
   if (mode === 'mock') {
     return {
       providerTransactionId: `MOCK-${reference}`,
       providerStatus: 'PENDING',
-      message: 'Pedido de teste enviado. Confirme o pagamento no simulador M-Pesa.',
+      message: 'Pedido de teste pendente. Confirme o pagamento no simulador M-Pesa; nenhuma cobrança real foi feita.',
     };
   }
 
@@ -27,7 +27,7 @@ const requestMpesaPayment = async ({ phone, reference }) => {
     body: JSON.stringify({
       transactionReference: reference,
       customerMsisdn: phone,
-      amount: RESERVATION_FEE_MZN,
+      amount,
       thirdPartyReference: reference,
       serviceProviderCode,
     }),

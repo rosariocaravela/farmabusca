@@ -70,6 +70,7 @@ export default function ProfileScreen({ navigation }) {
   const [provincePickerOpen, setProvincePickerOpen] = useState(false);
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
+  const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
 
   const cityOptions = cityOptionsByProvince[province] || [];
 
@@ -310,7 +311,10 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.topInfo}>
           <TouchableOpacity
             style={styles.logoWrapper}
-            onPress={() => (isPharmacy || isPatient ? pickImage(setLogo) : undefined)}
+            onPress={() => {
+              if (logo) setPhotoPreviewOpen(true);
+              else if (isPharmacy || isPatient) pickImage(setLogo);
+            }}
             activeOpacity={isPharmacy || isPatient ? 0.7 : 1}
           >
             {logo ? (
@@ -320,6 +324,16 @@ export default function ProfileScreen({ navigation }) {
                 <Ionicons name={isPharmacy ? 'business' : 'person-circle'} size={28} color="#2F9E5D" />
               </View>
             )}
+            {isPharmacy || isPatient ? (
+              <TouchableOpacity
+                style={styles.logoEditBadge}
+                onPress={() => pickImage(setLogo)}
+                accessibilityRole="button"
+                accessibilityLabel="Alterar foto do perfil"
+              >
+                <Ionicons name="camera" size={15} color="#FFFFFF" />
+              </TouchableOpacity>
+            ) : null}
           </TouchableOpacity>
           <View style={styles.brandInfo}>
             <Text style={styles.brandTitle}>{name}</Text>
@@ -329,6 +343,14 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
       </View>
+
+      {isPatient ? (
+        <TouchableOpacity style={styles.planBanner} onPress={() => navigation.navigate('Plans')} activeOpacity={0.86} accessibilityRole="button" accessibilityLabel="Ver planos do FarmaBusca">
+          <View style={styles.planIcon}><Ionicons name="sparkles" size={20} color="#166534" /></View>
+          <View style={styles.planCopy}><Text style={styles.planEyebrow}>PLANOS FARMA busca</Text><Text style={styles.planTitle}>Cuide da sua saúde do seu jeito</Text><Text style={styles.planText}>Comece grátis e escolha mais benefícios quando precisar.</Text></View>
+          <Ionicons name="chevron-forward" size={20} color="#166534" />
+        </TouchableOpacity>
+      ) : null}
 
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>{isPharmacy ? 'Informações básicas' : 'Dados pessoais'}</Text>
@@ -482,6 +504,13 @@ export default function ProfileScreen({ navigation }) {
         <CustomButton title={saving ? 'Salvando...' : isPharmacy ? (pharmacyId ? 'Salvar alterações' : 'Criar perfil da farmácia') : 'Atualizar perfil'} loading={saving} onPress={isPharmacy ? saveProfile : savePatientProfile} />
         <CustomButton title="Sair" style={styles.logoutButton} onPress={() => logout('Login')} />
       </View>
+
+      <Modal visible={photoPreviewOpen} transparent animationType="fade" onRequestClose={() => setPhotoPreviewOpen(false)}>
+        <TouchableOpacity style={styles.photoModal} activeOpacity={1} onPress={() => setPhotoPreviewOpen(false)}>
+          <Image source={{ uri: logo }} style={styles.previewImage} resizeMode="contain" />
+          <Text style={styles.photoHint}>Toque para fechar</Text>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 }
@@ -501,6 +530,12 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   topInfo: { flexDirection: 'row', alignItems: 'center' },
+  planBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, marginBottom: 20, borderRadius: 18, backgroundColor: '#DCFCE7', borderWidth: 1, borderColor: '#A7E3B9' },
+  planIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  planCopy: { flex: 1 },
+  planEyebrow: { color: '#166534', fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
+  planTitle: { color: '#10231A', fontSize: 15, fontWeight: '800', marginTop: 2 },
+  planText: { color: '#62706A', fontSize: 12, marginTop: 3 },
   logoWrapper: {
     width: 86,
     height: 86,
@@ -522,6 +557,19 @@ const styles = StyleSheet.create({
     width: 86,
     height: 86,
     borderRadius: 22,
+  },
+  logoEditBadge: {
+    position: 'absolute',
+    right: -5,
+    bottom: -5,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#2F9E5D',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   brandInfo: { flex: 1 },
   brandTitle: { fontSize: 22, fontWeight: '800', color: '#1F2937', marginBottom: 8 },
@@ -611,4 +659,20 @@ const styles = StyleSheet.create({
   statLabel: { marginTop: 8, color: '#4B5563', fontSize: 13 },
   actionsContainer: { marginBottom: 24 },
   logoutButton: { backgroundColor: '#E85D5D', marginTop: 12 },
+  photoModal: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  previewImage: {
+    width: '100%',
+    height: '70%',
+  },
+  photoHint: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginTop: 16,
+  },
 });

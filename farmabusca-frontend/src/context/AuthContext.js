@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { setAuthToken, login as apiLogin, register as apiRegister, forgotPassword as apiForgotPassword, resetPassword as apiResetPassword } from '../services/api';
+import { setAuthToken, login as apiLogin, register as apiRegister, getProfile, forgotPassword as apiForgotPassword, resetPassword as apiResetPassword } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -24,9 +24,23 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
-        setUser(session.user);
         setToken(session.token);
         setAuthToken(session.token);
+        try {
+          const profile = await getProfile();
+          const validatedUser = profile || session.user;
+          setUser(validatedUser);
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ user: validatedUser, token: session.token }));
+        } catch (profileError) {
+          if (profileError.response?.status === 401) {
+            await AsyncStorage.removeItem(STORAGE_KEY);
+            setUser(null);
+            setToken(null);
+            setAuthToken(null);
+            return;
+          }
+          setUser(session.user);
+        }
         setAuthInitialRoute('Splash');
       } catch (error) {
         console.log('Não foi possível restaurar a sessão:', error);
