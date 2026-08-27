@@ -51,6 +51,12 @@ const loginUser = async ({ email, password }) => {
     throw error;
   }
 
+  if (user.isActive === false) {
+    const error = new Error('Esta conta encontra-se suspensa. Contacte a administração do FarmaBusca.');
+    error.statusCode = 403;
+    throw error;
+  }
+
   const isMatch = await comparePassword(password, user.password);
   if (!isMatch) {
     const error = new Error('Credenciais inválidas');

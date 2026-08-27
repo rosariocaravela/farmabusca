@@ -21,6 +21,10 @@ module.exports = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Utilizador não encontrado' });
     }
 
+    if (user.isActive === false) {
+      return res.status(403).json({ success: false, message: 'Esta conta encontra-se suspensa' });
+    }
+
     req.user = user;
     req.user.role = String(req.user.role || 'PATIENT').toUpperCase();
     next();

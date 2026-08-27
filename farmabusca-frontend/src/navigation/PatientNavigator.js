@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import TabIcon from '../components/TabIcon';
 import HomeScreen from '../screens/patient/HomeScreen';
 import SearchMedicineScreen from '../screens/patient/SearchMedicineScreenV2';
+import MedicineFiltersScreen from '../screens/patient/MedicineFiltersScreen';
 import FavoritesScreen from '../screens/patient/FavoritesScreen';
 import ProfileScreen from '../screens/patient/ProfileScreen';
 import MedicineDetailsScreen from '../screens/patient/MedicineDetailsScreen';
@@ -26,6 +27,7 @@ function PatientSection({ navigator: SectionStack, initialName, initialComponent
     <SectionStack.Navigator screenOptions={{ headerShown: false }}>
       <SectionStack.Screen name={initialName} component={initialComponent} />
       <SectionStack.Screen name="MedicineDetails" component={MedicineDetailsScreen} />
+      <SectionStack.Screen name="MedicineFilters" component={MedicineFiltersScreen} />
       <SectionStack.Screen name="Payment" component={PaymentScreen} />
       <SectionStack.Screen name="PharmaciesList" component={PharmaciesScreen} />
       <SectionStack.Screen name="PharmacyMedicines" component={PharmacyMedicinesScreen} />

@@ -78,7 +78,7 @@ export default function AdminMedicinesScreen() {
             name: item.name,
             description: item.description,
             price: item.price,
-            stock: item.stockStatus === 'AVAILABLE' ? 'Disponível' : item.stockStatus === 'LOW_STOCK' ? 'Stock baixo' : 'Indisponível',
+            stock: item.stockStatus === 'OUT_OF_STOCK' ? 'Indisponível' : 'Disponível',
             pharmacy: item.Pharmacy?.name || '',
             image: item.image,
           }} onPress={() => Alert.alert('Medicamento', item.name || 'Detalhes')} />

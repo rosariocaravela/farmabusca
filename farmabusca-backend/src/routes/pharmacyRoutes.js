@@ -26,12 +26,13 @@ const {
 } = require('../controllers/pharmacyController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const roleMiddleware = require('../middlewares/roleMiddleware');
+const { validateCreatePharmacy, validateUpdatePharmacy } = require('../middlewares/pharmacyValidationMiddleware');
 
 const router = express.Router();
 
 router.get('/', listPharmacies);
-router.post('/me', authMiddleware, roleMiddleware(['PHARMACY']), upload.fields([{ name: 'image', maxCount: 1 }, { name: 'documents', maxCount: 10 }]), createProfile);
-router.put('/me', authMiddleware, roleMiddleware(['PHARMACY']), upload.fields([{ name: 'image', maxCount: 1 }, { name: 'documents', maxCount: 10 }]), updateProfile);
+router.post('/me', authMiddleware, roleMiddleware(['PHARMACY']), upload.fields([{ name: 'image', maxCount: 1 }, { name: 'documents', maxCount: 10 }]), validateCreatePharmacy, createProfile);
+router.put('/me', authMiddleware, roleMiddleware(['PHARMACY']), upload.fields([{ name: 'image', maxCount: 1 }, { name: 'documents', maxCount: 10 }]), validateUpdatePharmacy, updateProfile);
 router.get('/me', authMiddleware, roleMiddleware(['PHARMACY']), getMyPharmacy);
 router.get('/me/medicines', authMiddleware, roleMiddleware(['PHARMACY']), listMyMedicines);
 router.get('/me/medicines/:id', authMiddleware, roleMiddleware(['PHARMACY']), getMyMedicineById);

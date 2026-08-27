@@ -1,5 +1,6 @@
 module.exports = (err, req, res, next) => {
-  console.error(err);
+  const statusCode = err.statusCode || 500;
+  if (statusCode >= 500) console.error(err);
 
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({
@@ -22,7 +23,6 @@ module.exports = (err, req, res, next) => {
     });
   }
 
-  const statusCode = err.statusCode || 500;
   const message = statusCode >= 500 && process.env.NODE_ENV === 'production'
     ? 'Erro interno do servidor'
     : err.message || 'Erro interno do servidor';

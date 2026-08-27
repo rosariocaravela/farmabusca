@@ -1,5 +1,9 @@
 # FarmaBusca
 
+> Actualização do MVP: a pesquisa suporta proximidade real por GPS, cálculo Haversine no backend, ordenação por distância e raios de 1, 3, 5 ou 10 km. As coordenadas do paciente são opcionais, transitórias e não são persistidas. Consulte `DEMO_GUIDE.md` para o cenário reproduzível.
+
+> O perfil paciente também possui um Assistente Farmabusca com interpretação estruturada através do Google Gemini. O Gemini apenas interpreta o pedido; farmácias, preços, stock e distâncias vêm exclusivamente do PostgreSQL e do cálculo Haversine no backend. A chave nunca é enviada ao Expo.
+
 Aplicação móvel e web para pesquisa de medicamentos e farmácias, gestão de catálogos farmacêuticos e administração de estabelecimentos cadastrados. O repositório contém um frontend React Native/Expo e uma API REST Node.js/Express ligada a PostgreSQL.
 
 > **Estado:** MVP em desenvolvimento. Há fluxos funcionais para pacientes, farmácias e administradores, mas pagamentos, recuperação de palavra-passe, mapa administrativo, segurança das respostas e testes ainda exigem trabalho antes de produção.

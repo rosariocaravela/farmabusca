@@ -13,14 +13,15 @@ const upload = multer({
 const { listMedicines, searchMedicines, getMedicineById, createMedicine, updateMedicine, deleteMedicine } = require('../controllers/medicineController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const roleMiddleware = require('../middlewares/roleMiddleware');
+const { validateCreateMedicine, validateUpdateMedicine } = require('../middlewares/medicineValidationMiddleware');
 
 const router = express.Router();
 
 router.get('/', listMedicines);
 router.get('/search', searchMedicines);
 router.get('/:id', getMedicineById);
-router.post('/', authMiddleware, roleMiddleware(['PHARMACY']), upload.single('image'), createMedicine);
-router.put('/:id', authMiddleware, roleMiddleware(['PHARMACY']), upload.single('image'), updateMedicine);
+router.post('/', authMiddleware, roleMiddleware(['PHARMACY']), upload.single('image'), validateCreateMedicine, createMedicine);
+router.put('/:id', authMiddleware, roleMiddleware(['PHARMACY']), upload.single('image'), validateUpdateMedicine, updateMedicine);
 router.delete('/:id', authMiddleware, roleMiddleware(['PHARMACY']), deleteMedicine);
 
 module.exports = router;

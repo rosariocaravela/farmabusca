@@ -1,4 +1,5 @@
 const SELF_REGISTER_ROLES = new Set(['PATIENT', 'PHARMACY']);
+const SAFE_USER_ATTRIBUTES = ['id', 'name', 'email', 'phone', 'image', 'subscriptionPlan', 'subscriptionExpiresAt', 'role', 'isActive', 'createdAt', 'updatedAt'];
 
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
 
@@ -21,6 +22,7 @@ const sanitizeUser = (user) => {
 };
 
 module.exports = {
+  SAFE_USER_ATTRIBUTES,
   normalizeEmail,
   normalizeSelfRegisterRole,
   sanitizeUser,

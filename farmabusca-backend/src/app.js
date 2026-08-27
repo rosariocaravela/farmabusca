@@ -1,9 +1,10 @@
 require('dotenv').config();
 
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
+const { rateLimit } = require('express-rate-limit');
 const swaggerUi = require('swagger-ui-express');
-const { connectDb } = require('./config/database');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const pharmacyRoutes = require('./routes/pharmacyRoutes');
@@ -16,12 +17,33 @@ const errorMiddleware = require('./middlewares/errorMiddleware');
 
 const app = express();
 
-app.use(cors({ origin: true, credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] }));
-app.options('*', cors());
+const configuredOrigins = String(process.env.CORS_ORIGINS || 'http://localhost:19006,http://localhost:8081,http://localhost:3000')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || configuredOrigins.includes(origin)) return callback(null, true);
+    const error = new Error('Origem não autorizada pelo CORS');
+    error.statusCode = 403;
+    return callback(error);
+  },
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/demo-assets', express.static(path.resolve(__dirname, '..', 'public', 'demo-assets'), { maxAge: '1d', immutable: false }));
 
-connectDb();
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: Number(process.env.AUTH_RATE_LIMIT) || 30,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { success: false, message: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' },
+});
 
 const swaggerSpec = {
   openapi: '3.0.0',
@@ -49,7 +71,7 @@ app.get('/', (_req, res) => {
   res.json({ success: true, message: 'FarmaBusca API is running', data: {} });
 });
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/payments', paymentRoutes);

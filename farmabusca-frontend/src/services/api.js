@@ -16,14 +16,23 @@ const getExpoBackendUrl = () => {
   return null;
 };
 
-// Ajuste este valor para o IP da sua máquina quando usar Expo Go.
-const defaultBackend = 'http://192.168.43.163:5000'; // Substitua pelo IP da sua máquina
-const base = (process.env.BACKEND_URL || getExpoBackendUrl() || defaultBackend).replace(/\/$/, '');
+const defaultBackend = 'http://localhost:5000';
+const base = (process.env.EXPO_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || getExpoBackendUrl() || defaultBackend).replace(/\/$/, '');
 
 const api = axios.create({
   baseURL: `${base}/api`,
   timeout: 10000,
 });
+
+const normalizeAssetUrls = (value) => {
+  if (Array.isArray(value)) return value.map(normalizeAssetUrls);
+  if (!value || typeof value !== 'object') return value;
+  for (const [key, nested] of Object.entries(value)) {
+    if ((key === 'image' || key === 'imageUrl') && typeof nested === 'string' && nested.startsWith('/demo-assets/')) value[key] = `${base}${nested}`;
+    else if (nested && typeof nested === 'object') normalizeAssetUrls(nested);
+  }
+  return value;
+};
 
 api.interceptors.request.use(async (config) => {
   config.headers = config.headers || {};
@@ -38,7 +47,7 @@ api.interceptors.request.use(async (config) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => { normalizeAssetUrls(response.data); return response; },
   (error) => {
     if (error.response?.status === 401) {
       console.warn('API request unauthorized:', error.config?.method?.toUpperCase(), error.config?.url, error.response?.data?.message || error.response?.data);
@@ -73,7 +82,7 @@ export const updatePharmacyProfile = (payload, config = {}) => {
   return api.put('/pharmacies/me', payload, { timeout: 60000, ...config }).then((r) => r.data.data);
 };
 
-export const getPharmacies = () => api.get('/pharmacies').then((r) => r.data);
+export const getPharmacies = (params = {}) => api.get('/pharmacies', { params }).then((r) => r.data);
 export const getPharmacyById = (id) => api.get(`/pharmacies/${id}`).then((r) => r.data?.data || r.data);
 export const getPharmacyMedicines = (id) => api.get(`/pharmacies/${id}/medicines`).then((r) => r.data);
 export const getMyPharmacyMedicines = () => api.get('/pharmacies/me/medicines').then((r) => r.data?.data || r.data);
@@ -81,21 +90,29 @@ export const getMyPharmacyMedicineById = (id) => api.get(`/pharmacies/me/medicin
 
 export const getPendingPharmacies = () => api.get('/admin/pharmacies/pending').then((r) => r.data.data);
 export const getAdminPharmacies = (params) => api.get('/admin/pharmacies', { params }).then((r) => r.data.data);
+export const getAdminUsers = (params) => api.get('/admin/users', { params }).then((r) => r.data.data);
+export const updateAdminUserStatus = (id, isActive) => api.put(`/admin/users/${id}/status`, { isActive }).then((r) => r.data.data);
+export const getAdminAuditLogs = (params) => api.get('/admin/audit-logs', { params }).then((r) => r.data.data);
 export const updateAdminPharmacyStatus = (id, action) => api.put(`/admin/pharmacies/${id}/status`, { action }).then((r) => r.data.data);
+export const updateAdminPharmacyLocation = (id, payload) => api.put(`/admin/pharmacies/${id}/location`, payload).then((r) => r.data.data);
 export const getAdminMedicines = (params) => api.get('/admin/medicines', { params }).then((r) => r.data.data);
 export const getAdminSummary = () => api.get('/admin/analytics/summary').then((r) => r.data.data);
 export const approvePharmacy = (id) => api.put(`/admin/pharmacies/${id}/approve`).then((r) => r.data.data);
-export const getMedicines = () => api.get('/medicines').then((r) => r.data);
-export const searchMedicines = (name) => api.get('/medicines/search', { params: { name } }).then((r) => r.data);
+export const getMedicines = (params) => api.get('/medicines', { params }).then((r) => r.data);
+export const searchMedicines = (name, params = {}) => api.get('/medicines/search', { params: { ...params, name } }).then((r) => r.data);
 export const getMedicineById = (id) => api.get(`/medicines/${id}`).then((r) => r.data);
 export const createMedicine = (data, config = {}) => api.post('/medicines', data, config).then((r) => r.data);
 export const updateMedicine = (id, data, config = {}) => api.put(`/medicines/${id}`, data, config).then((r) => r.data);
+export const deleteMedicine = (id) => api.delete(`/medicines/${id}`).then((r) => r.data);
 export const getFavorites = () => api.get('/favorites').then((r) => r.data);
 export const addFavorite = (medicineId) => api.post('/favorites', { medicineId }).then((r) => r.data);
 export const removeFavorite = (medicineId) => api.delete(`/favorites/${medicineId}`).then((r) => r.data);
+export const getPharmacyFavorites = () => api.get('/favorites/pharmacies').then((r) => r.data);
+export const addPharmacyFavorite = (pharmacyId) => api.post('/favorites/pharmacies', { pharmacyId }).then((r) => r.data);
+export const removePharmacyFavorite = (pharmacyId) => api.delete(`/favorites/pharmacies/${pharmacyId}`).then((r) => r.data);
 export const initiateReservationPayment = (medicineId, phone, requestId) => api.post('/payments', { medicineId, phone, requestId }).then((r) => r.data);
 export const initiatePlanPayment = (plan, phone, requestId) => api.post('/payments/plans', { plan, phone, requestId }).then((r) => r.data);
 export const getReservationPaymentStatus = (id) => api.get(`/payments/${id}`).then((r) => r.data);
-export const askAssistant = (question, medicineId) => api.post('/assistant', { question, medicineId }).then((r) => r.data);
+export const askAssistant = (payload) => api.post('/assistant', payload, { timeout: 70000 }).then((r) => r.data);
 
 export default api;

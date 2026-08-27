@@ -89,6 +89,10 @@ export default function AdminDashboardScreen() {
       ) : analytics ? (
         <View style={styles.summarySection}>
           <View style={styles.summaryRow}>
+            <DashboardCard title="Pacientes" value={`${analytics.totalPatients ?? 0}`} color="#ECFDF5" />
+            <DashboardCard title="Utilizadores suspensos" value={`${analytics.suspendedUsers ?? 0}`} color="#FEE2E2" />
+          </View>
+          <View style={styles.summaryRow}>
             <DashboardCard title="Aprovadas" value={`${analytics.approvedPharmacies}`} color="#E8F7EE" />
             <DashboardCard title="Pendentes" value={`${analytics.pendingPharmacies}`} color="#FEF3F2" />
           </View>
@@ -101,8 +105,7 @@ export default function AdminDashboardScreen() {
             <DashboardCard title="Disponíveis" value={`${analytics.availableMedicines}`} color="#F5F3FF" />
           </View>
           <View style={styles.summaryRow}>
-            <DashboardCard title="Stock baixo" value={`${analytics.lowStockMedicines}`} color="#FFF7ED" />
-            <DashboardCard title="Esgotados" value={`${analytics.outOfStockMedicines}`} color="#FCE7F3" />
+            <DashboardCard title="Indisponíveis" value={`${analytics.outOfStockMedicines}`} color="#FCE7F3" />
           </View>
           {Array.isArray(analytics.pharmaciesByProvince) && analytics.pharmaciesByProvince.length > 0 ? (
             <View style={styles.provinceSection}>
@@ -175,7 +178,7 @@ export default function AdminDashboardScreen() {
               </View>
               <TouchableOpacity
                 style={[styles.button, approvingId === pharmacy.id ? styles.buttonDisabled : null]}
-                onPress={() => handleApprove(pharmacy.id)}
+                onPress={() => Alert.alert('Aprovar farmácia?', `Confirma a aprovação de ${pharmacy.name || 'esta farmácia'}?`, [{ text: 'Cancelar', style: 'cancel' }, { text: 'Aprovar', onPress: () => handleApprove(pharmacy.id) }])}
                 disabled={approvingId === pharmacy.id}
               >
                 <Text style={styles.buttonText}>{approvingId === pharmacy.id ? 'Aprovando...' : 'Aprovar'}</Text>

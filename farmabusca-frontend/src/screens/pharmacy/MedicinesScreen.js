@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Alert, View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MedicineCard from '../../components/MedicineCard';
-import { getMyPharmacyMedicines } from '../../services/api';
+import SearchBar from '../../components/SearchBar';
+import { deleteMedicine, getMyPharmacyMedicines } from '../../services/api';
 
 export default function MedicinesScreen({ navigation }) {
   const [medicines, setMedicines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -23,9 +25,8 @@ export default function MedicinesScreen({ navigation }) {
         const meds = list.map((m) => ({
           id: m.id,
           name: m.name,
-          description: m.description,
           price: m.price,
-          stock: m.stockStatus === 'AVAILABLE' ? 'Disponível' : m.stockStatus === 'LOW_STOCK' ? 'Stock baixo' : 'Indisponível',
+          stock: m.stockStatus === 'OUT_OF_STOCK' ? 'Indisponível' : 'Disponível',
           pharmacy: m.Pharmacy?.name || m.pharmacy || '',
         }));
         setMedicines(meds);
@@ -43,6 +44,20 @@ export default function MedicinesScreen({ navigation }) {
   }, []);
 
   const handlePress = (item) => navigation.navigate('EditMedicine', { id: item.id });
+  const handleDelete = (item) => Alert.alert('Desactivar medicamento?', `${item.name} deixará de aparecer na pesquisa dos pacientes.`, [
+    { text: 'Cancelar', style: 'cancel' },
+    { text: 'Desactivar', style: 'destructive', onPress: async () => {
+      try {
+        await deleteMedicine(item.id);
+        setMedicines((current) => current.filter((medicine) => medicine.id !== item.id));
+        Alert.alert('Sucesso', 'Medicamento desactivado.');
+      } catch (requestError) {
+        Alert.alert('Erro', requestError.response?.data?.message || 'Não foi possível desactivar o medicamento.');
+      }
+    } },
+  ]);
+
+  const visibleMedicines = medicines.filter((item) => `${item.name} ${item.stock || ''}`.toLowerCase().includes(search.trim().toLowerCase()));
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 20 }}>
@@ -52,6 +67,7 @@ export default function MedicinesScreen({ navigation }) {
           <Ionicons name="add-circle" size={28} color="#2F9E5D" />
         </TouchableOpacity>
       </View>
+      <SearchBar value={search} onChangeText={setSearch} placeholder="Pesquisar inventário" />
 
       {loading ? (
         <View style={styles.centerContent}>
@@ -66,7 +82,7 @@ export default function MedicinesScreen({ navigation }) {
             <Text style={styles.retryText}>Tentar novamente</Text>
           </TouchableOpacity>
         </View>
-      ) : medicines.length === 0 ? (
+      ) : visibleMedicines.length === 0 ? (
         <View style={styles.emptyBox}>
           <Ionicons name="package-outline" size={48} color="#CBD5E1" />
           <Text style={styles.emptyTitle}>Nenhum medicamento cadastrado</Text>
@@ -77,7 +93,7 @@ export default function MedicinesScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       ) : (
-        medicines.map((item) => <MedicineCard key={item.id} item={item} onPress={() => handlePress(item)} />)
+        visibleMedicines.map((item) => <View key={item.id} style={styles.medicineWrap}><MedicineCard item={item} onPress={() => handlePress(item)} /><View style={styles.actions}><TouchableOpacity style={styles.editAction} onPress={() => handlePress(item)}><Text style={styles.editText}>Editar</Text></TouchableOpacity><TouchableOpacity style={styles.deleteAction} onPress={() => handleDelete(item)}><Text style={styles.deleteText}>Desactivar</Text></TouchableOpacity></View></View>)
       )}
     </ScrollView>
   );
@@ -98,4 +114,5 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, color: '#64748B', marginTop: 8, textAlign: 'center' },
   addButton: { marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#2F9E5D', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
   addButtonText: { color: '#FFFFFF', fontWeight: '600' },
+  medicineWrap: { marginTop: 14 }, actions: { flexDirection: 'row', gap: 10, marginTop: 8 }, editAction: { flex: 1, alignItems: 'center', padding: 10, borderRadius: 10, backgroundColor: '#DCFCE7' }, editText: { color: '#166534', fontWeight: '800' }, deleteAction: { flex: 1, alignItems: 'center', padding: 10, borderRadius: 10, backgroundColor: '#FEE2E2' }, deleteText: { color: '#B91C1C', fontWeight: '800' },
 });

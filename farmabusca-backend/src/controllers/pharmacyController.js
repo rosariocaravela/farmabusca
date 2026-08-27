@@ -1,5 +1,10 @@
 const { Pharmacy, Medicine, User, Category } = require('../models');
+const { Op } = require('sequelize');
 const { uploadImage } = require('../services/cloudinaryService');
+const { SAFE_USER_ATTRIBUTES } = require('../utils/authPolicy');
+const { PUBLIC_PHARMACY_ATTRIBUTES } = require('../utils/pharmacyPolicy');
+
+const safeUserInclude = { model: User, attributes: SAFE_USER_ATTRIBUTES };
 
 const PROFILE_FIELDS = [
   'name',
@@ -8,6 +13,7 @@ const PROFILE_FIELDS = [
   'city',
   'province',
   'district',
+  'neighborhood',
   'phone',
   'whatsapp',
   'openingHours',
@@ -15,6 +21,8 @@ const PROFILE_FIELDS = [
   'nuit',
   'licenseNumber',
   'location',
+  'latitude',
+  'longitude',
   'responsibleName',
   'responsibleRole',
   'responsibleContact',
@@ -156,7 +164,7 @@ const listMyMedicines = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Farmácia não encontrada' });
     }
 
-    const medicines = await Medicine.findAll({ where: { pharmacyId: pharmacy.id }, include: [Category] });
+    const medicines = await Medicine.findAll({ where: { pharmacyId: pharmacy.id, isActive: true }, include: [Category] });
     res.json({ success: true, message: 'Medicamentos da farmácia', data: medicines });
   } catch (error) {
     next(error);
@@ -171,7 +179,7 @@ const getMyMedicineById = async (req, res, next) => {
     }
 
     const medicine = await Medicine.findOne({
-      where: { id: req.params.id, pharmacyId: pharmacy.id },
+      where: { id: req.params.id, pharmacyId: pharmacy.id, isActive: true },
       include: [Category],
     });
     if (!medicine) {
@@ -186,7 +194,15 @@ const getMyMedicineById = async (req, res, next) => {
 
 const listPharmacies = async (req, res, next) => {
   try {
-    const pharmacies = await Pharmacy.findAll({ where: { approved: true, suspended: false }, include: [User] });
+    const where = { approved: true, suspended: false };
+    const name = String(req.query.name || '').trim();
+    const location = String(req.query.location || '').trim();
+    if (name) where.name = { [Op.iLike]: `%${name}%` };
+    if (location) where[Op.or] = ['neighborhood', 'address', 'city', 'district', 'province', 'location']
+      .map((field) => ({ [field]: { [Op.iLike]: `%${location}%` } }));
+
+    where.reviewStatus = 'APPROVED';
+    const pharmacies = await Pharmacy.findAll({ attributes: PUBLIC_PHARMACY_ATTRIBUTES, where, include: [{ model: User, attributes: [], where: { isActive: true }, required: true }], order: [['name', 'ASC']] });
     res.json({ success: true, message: 'Farmácias listadas', data: pharmacies.map(withPublicImage) });
   } catch (error) {
     next(error);
@@ -196,8 +212,9 @@ const listPharmacies = async (req, res, next) => {
 const getPharmacyById = async (req, res, next) => {
   try {
     const pharmacy = await Pharmacy.findOne({
-      where: { id: req.params.id, approved: true, suspended: false },
-      include: [User],
+      where: { id: req.params.id, approved: true, suspended: false, reviewStatus: 'APPROVED' },
+      attributes: PUBLIC_PHARMACY_ATTRIBUTES,
+      include: [{ model: User, attributes: [], where: { isActive: true }, required: true }],
     });
     if (!pharmacy) {
       return res.status(404).json({ success: false, message: 'Farmácia não encontrada' });
@@ -210,9 +227,9 @@ const getPharmacyById = async (req, res, next) => {
 
 const listPharmacyMedicines = async (req, res, next) => {
   try {
-    const pharmacy = await Pharmacy.findOne({ where: { id: req.params.id, approved: true, suspended: false } });
+    const pharmacy = await Pharmacy.findOne({ where: { id: req.params.id, approved: true, suspended: false, reviewStatus: 'APPROVED' }, include: [{ model: User, attributes: [], where: { isActive: true }, required: true }] });
     if (!pharmacy) return res.status(404).json({ success: false, message: 'Farmácia não encontrada' });
-    const medicines = await Medicine.findAll({ where: { pharmacyId: pharmacy.id, stockStatus: ['AVAILABLE', 'LOW_STOCK'] }, include: [Category] });
+    const medicines = await Medicine.findAll({ where: { pharmacyId: pharmacy.id, isActive: true }, include: [Category] });
     res.json({ success: true, message: 'Medicamentos da farmácia listados', data: medicines });
   } catch (error) {
     next(error);

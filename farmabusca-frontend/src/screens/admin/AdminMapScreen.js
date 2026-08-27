@@ -55,13 +55,6 @@ export default function AdminMapScreen() {
             </View>
           </View>
 
-          <View style={styles.summaryRow}>
-            <View style={styles.infoCardFull}>
-              <Text style={styles.infoValue}>{summary?.lowStockMedicines ?? 0}</Text>
-              <Text style={styles.infoLabel}>Medicamentos com stock baixo</Text>
-            </View>
-          </View>
-
           <View style={styles.provinceSection}>
             <Text style={styles.provinceTitle}>Distribuição por província</Text>
             {Array.isArray(summary?.pharmaciesByProvince) && summary.pharmaciesByProvince.length > 0 ? (

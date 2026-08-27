@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../../context/AuthContext';
 import { createPharmacyProfile, getMyPharmacy, getProfile, updateUserProfile, updatePharmacyProfile } from '../../services/api';
 import CustomInput from '../../components/CustomInput';
@@ -44,6 +45,7 @@ const cityOptionsByProvince = {
 };
 
 export default function ProfileScreen({ navigation }) {
+  const tabBarHeight = useBottomTabBarHeight();
   const { user, logout, updateSessionUser } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [description, setDescription] = useState('');
@@ -55,6 +57,10 @@ export default function ProfileScreen({ navigation }) {
   const [city, setCity] = useState('');
   const [district, setDistrict] = useState('');
   const [address, setAddress] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [locationReference, setLocationReference] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   const [open24h, setOpen24h] = useState(false);
   const [openingTime, setOpeningTime] = useState('08:00');
   const [closingTime, setClosingTime] = useState('18:00');
@@ -137,14 +143,18 @@ export default function ProfileScreen({ navigation }) {
       const pharmacy = await getMyPharmacy();
       if (pharmacy) {
         setPharmacyId(pharmacy.id);
-        setName(pharmacy.name || user?.name || 'Farmácia Central');
-        setDescription(pharmacy.description || 'Especializada em medicamentos e atendimento local.');
-        setContact(pharmacy.phone || user?.phone || '84 000 000');
+        setName(pharmacy.name || user?.name || '');
+        setDescription(pharmacy.description || '');
+        setContact(pharmacy.phone || user?.phone || '');
         setWhatsapp(pharmacy.whatsapp || user?.phone || '');
-        setProvince(pharmacy.province || 'Maputo');
-        setCity(pharmacy.city || 'Maputo Cidade');
+        setProvince(pharmacy.province || '');
+        setCity(pharmacy.city || '');
         setDistrict(pharmacy.district || '');
-        setAddress(pharmacy.address || 'Av. 25 de Setembro, 123');
+        setNeighborhood(pharmacy.neighborhood || '');
+        setAddress(pharmacy.address || '');
+        setLocationReference(pharmacy.location || '');
+        setLatitude(pharmacy.latitude != null ? String(pharmacy.latitude) : '');
+        setLongitude(pharmacy.longitude != null ? String(pharmacy.longitude) : '');
         const savedHours = pharmacy.openingHours || '08:00 - 18:00';
         setOpen24h(savedHours === '24h');
         if (savedHours !== '24h') {
@@ -205,6 +215,12 @@ export default function ProfileScreen({ navigation }) {
   }, [user]);
 
   const saveProfile = async () => {
+    if (!name.trim() || !address.trim() || !contact.trim() || !province.trim()) {
+      return Alert.alert('Dados obrigatórios', 'Preencha nome, contacto, província e endereço da farmácia.');
+    }
+    if (!open24h && (!/^\d{2}:\d{2}$/.test(openingTime.trim()) || !/^\d{2}:\d{2}$/.test(closingTime.trim()))) {
+      return Alert.alert('Horário inválido', 'Use o formato HH:MM para abertura e encerramento.');
+    }
     setSaving(true);
     setProfileMessage('');
     try {
@@ -217,6 +233,12 @@ export default function ProfileScreen({ navigation }) {
       payload.append('city', city.trim());
       payload.append('province', province.trim());
       payload.append('district', district.trim());
+      payload.append('neighborhood', neighborhood.trim());
+      payload.append('location', locationReference.trim());
+      if (latitude.trim() && longitude.trim()) {
+        payload.append('latitude', latitude.trim());
+        payload.append('longitude', longitude.trim());
+      }
       payload.append('openingHours', open24h ? '24h' : `${openingTime.trim()} - ${closingTime.trim()}`);
 
       if (logoChanged && logo) {
@@ -306,7 +328,7 @@ export default function ProfileScreen({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView style={styles.page} contentContainerStyle={[styles.container, { paddingBottom: tabBarHeight + 32 }]} keyboardShouldPersistTaps="handled">
       <View style={styles.topCard}>
         <View style={styles.topInfo}>
           <TouchableOpacity
@@ -403,7 +425,9 @@ export default function ProfileScreen({ navigation }) {
             </View>
 
             <CustomInput label="Distrito" placeholder="Informe o distrito" value={district} onChangeText={setDistrict} />
+            <CustomInput label="Bairro" placeholder="Informe o bairro" value={neighborhood} onChangeText={setNeighborhood} />
             <CustomInput label="Endereço" placeholder="Endereço completo" value={address} onChangeText={setAddress} />
+            <CustomInput label="Ponto de referência" placeholder="Ex.: junto ao mercado" value={locationReference} onChangeText={setLocationReference} />
           </View>
 
           <Modal visible={categoryPickerOpen} transparent animationType="fade" onRequestClose={() => setCategoryPickerOpen(false)}>
@@ -501,8 +525,8 @@ export default function ProfileScreen({ navigation }) {
       ) : null}
 
       <View style={styles.actionsContainer}>
-        <CustomButton title={saving ? 'Salvando...' : isPharmacy ? (pharmacyId ? 'Salvar alterações' : 'Criar perfil da farmácia') : 'Atualizar perfil'} loading={saving} onPress={isPharmacy ? saveProfile : savePatientProfile} />
-        <CustomButton title="Sair" style={styles.logoutButton} onPress={() => logout('Login')} />
+        <CustomButton title={saving ? 'Salvando...' : isPharmacy ? (pharmacyId ? 'Salvar alterações' : 'Criar perfil da farmácia') : 'Atualizar perfil'} loading={saving} icon="save-outline" onPress={isPharmacy ? () => saveProfile() : savePatientProfile} />
+        <CustomButton title="Sair" variant="dangerSecondary" icon="log-out-outline" style={styles.logoutButton} onPress={() => logout('Login')} />
       </View>
 
       <Modal visible={photoPreviewOpen} transparent animationType="fade" onRequestClose={() => setPhotoPreviewOpen(false)}>
@@ -657,8 +681,8 @@ const styles = StyleSheet.create({
   statItem: { width: '48%', backgroundColor: '#F5FAF7', borderRadius: 18, padding: 16 },
   statValue: { fontSize: 22, fontWeight: '800', color: '#1F2937' },
   statLabel: { marginTop: 8, color: '#4B5563', fontSize: 13 },
-  actionsContainer: { marginBottom: 24 },
-  logoutButton: { backgroundColor: '#E85D5D', marginTop: 12 },
+  actionsContainer: { marginTop: 4, marginBottom: 24 },
+  logoutButton: { borderWidth: 1, borderColor: '#FDA4AF', marginTop: 12 },
   photoModal: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.9)',

@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator
 import { Ionicons } from '@expo/vector-icons';
 import SearchBar from '../../components/SearchBar';
 import CustomInput from '../../components/CustomInput';
-import { getAdminPharmacies, updateAdminPharmacyStatus } from '../../services/api';
+import { getAdminPharmacies, updateAdminPharmacyLocation, updateAdminPharmacyStatus } from '../../services/api';
 
 export default function AdminPharmaciesScreen() {
   const [search, setSearch] = useState('');
@@ -13,6 +13,8 @@ export default function AdminPharmaciesScreen() {
   const [loading, setLoading] = useState(true);
   const [pharmacies, setPharmacies] = useState([]);
   const [updatingId, setUpdatingId] = useState(null);
+  const [editingLocationId, setEditingLocationId] = useState(null);
+  const [locationDraft, setLocationDraft] = useState({ neighborhood: '', address: '', latitude: '', longitude: '' });
 
   const loadPharmacies = async () => {
     setLoading(true);
@@ -45,6 +47,35 @@ export default function AdminPharmaciesScreen() {
     }
   };
 
+  const confirmStatus = (pharmacy, action) => {
+    const label = action === 'approve' ? 'aprovar' : action === 'reject' ? 'rejeitar' : 'suspender';
+    Alert.alert(
+      `${label.charAt(0).toUpperCase()}${label.slice(1)} farmácia?`,
+      `Confirma que pretende ${label} ${pharmacy.name || 'esta farmácia'}?`,
+      [{ text: 'Cancelar', style: 'cancel' }, { text: label.charAt(0).toUpperCase() + label.slice(1), style: action === 'approve' ? 'default' : 'destructive', onPress: () => handleStatus(pharmacy.id, action) }],
+    );
+  };
+
+  const editLocation = (pharmacy) => {
+    setEditingLocationId(pharmacy.id);
+    setLocationDraft({ neighborhood: pharmacy.neighborhood || '', address: pharmacy.address || '', latitude: String(pharmacy.latitude ?? ''), longitude: String(pharmacy.longitude ?? '') });
+  };
+
+  const saveLocation = (pharmacy) => Alert.alert('Actualizar localização?', `Confirma as novas coordenadas de ${pharmacy.name}?`, [
+    { text: 'Cancelar', style: 'cancel' },
+    { text: 'Actualizar', onPress: async () => {
+      setUpdatingId(pharmacy.id);
+      try {
+        await updateAdminPharmacyLocation(pharmacy.id, locationDraft);
+        setEditingLocationId(null);
+        Alert.alert('Sucesso', 'Localização actualizada e registada na auditoria.');
+        loadPharmacies();
+      } catch (error) {
+        Alert.alert('Erro', error.response?.data?.message || 'Não foi possível actualizar a localização.');
+      } finally { setUpdatingId(null); }
+    } },
+  ]);
+
   const handleViewDocuments = (documents) => {
     if (!Array.isArray(documents) || documents.length === 0) {
       return Alert.alert('Documentos', 'Nenhum documento enviado.');
@@ -76,13 +107,13 @@ export default function AdminPharmaciesScreen() {
       </View>
 
       <View style={styles.statusRow}>
-        {['pending', 'approved', 'suspended'].map((option) => (
+        {['pending', 'approved', 'suspended', 'rejected'].map((option) => (
           <TouchableOpacity
             key={option}
             style={[styles.statusButton, status === option ? styles.statusButtonActive : null]}
             onPress={() => setStatus(option)}
           >
-            <Text style={[styles.statusText, status === option ? styles.statusTextActive : null]}>{option === 'pending' ? 'Pendente' : option === 'approved' ? 'Aprovadas' : 'Suspensas'}</Text>
+            <Text style={[styles.statusText, status === option ? styles.statusTextActive : null]}>{option === 'pending' ? 'Pendente' : option === 'approved' ? 'Aprovadas' : option === 'rejected' ? 'Rejeitadas' : 'Suspensas'}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -109,6 +140,14 @@ export default function AdminPharmaciesScreen() {
             <Text style={styles.cardField}>Email: {pharmacy.User?.email || 'Não informado'}</Text>
             <Text style={styles.cardField}>Telefone: {pharmacy.phone || pharmacy.User?.phone || 'Não informado'}</Text>
             <Text style={styles.cardField}>Documentos: {Array.isArray(pharmacy.documents) ? pharmacy.documents.length : 0}</Text>
+            <Text style={styles.cardField}>Localização: {[pharmacy.neighborhood, pharmacy.address].filter(Boolean).join(' · ') || 'Não informada'}</Text>
+            <Text style={styles.cardField}>Coordenadas: {pharmacy.latitude != null && pharmacy.longitude != null ? `${pharmacy.latitude}, ${pharmacy.longitude}` : 'Não informadas'}</Text>
+            {editingLocationId === pharmacy.id ? <View style={styles.locationEditor}>
+              <CustomInput label="Bairro" value={locationDraft.neighborhood} onChangeText={(value) => setLocationDraft((draft) => ({ ...draft, neighborhood: value }))} />
+              <CustomInput label="Endereço" value={locationDraft.address} onChangeText={(value) => setLocationDraft((draft) => ({ ...draft, address: value }))} />
+              <View style={styles.filterRow}><View style={styles.filterColumn}><CustomInput label="Latitude" keyboardType="numeric" value={locationDraft.latitude} onChangeText={(value) => setLocationDraft((draft) => ({ ...draft, latitude: value }))} /></View><View style={styles.filterColumnRight}><CustomInput label="Longitude" keyboardType="numeric" value={locationDraft.longitude} onChangeText={(value) => setLocationDraft((draft) => ({ ...draft, longitude: value }))} /></View></View>
+              <View style={styles.actionsRow}><TouchableOpacity style={[styles.actionButton, styles.approveButton]} onPress={() => saveLocation(pharmacy)}><Text style={styles.approveLabel}>Guardar localização</Text></TouchableOpacity><TouchableOpacity style={styles.actionButton} onPress={() => setEditingLocationId(null)}><Text style={styles.actionLabel}>Cancelar</Text></TouchableOpacity></View>
+            </View> : <TouchableOpacity style={styles.locationLink} onPress={() => editLocation(pharmacy)}><Ionicons name="location-outline" size={17} color="#2563EB" /><Text style={styles.actionLabel}>Corrigir localização</Text></TouchableOpacity>}
 
             <View style={styles.actionsRow}>
               <TouchableOpacity style={styles.actionButton} onPress={() => handleViewDocuments(pharmacy.documents)}>
@@ -118,7 +157,7 @@ export default function AdminPharmaciesScreen() {
               <TouchableOpacity
                 style={[styles.actionButton, styles.approveButton]}
                 disabled={updatingId === pharmacy.id}
-                onPress={() => handleStatus(pharmacy.id, 'approve')}
+                onPress={() => confirmStatus(pharmacy, 'approve')}
               >
                 <Ionicons name="checkmark-circle-outline" size={18} color="#065F46" />
                 <Text style={[styles.actionLabel, styles.approveLabel]}>Aprovar</Text>
@@ -126,11 +165,12 @@ export default function AdminPharmaciesScreen() {
               <TouchableOpacity
                 style={[styles.actionButton, styles.suspendButton]}
                 disabled={updatingId === pharmacy.id}
-                onPress={() => handleStatus(pharmacy.id, 'suspend')}
+                onPress={() => confirmStatus(pharmacy, 'suspend')}
               >
                 <Ionicons name="ban-outline" size={18} color="#B91C1C" />
                 <Text style={[styles.actionLabel, styles.suspendLabel]}>Suspender</Text>
               </TouchableOpacity>
+              {pharmacy.reviewStatus === 'PENDING' ? <TouchableOpacity style={[styles.actionButton, styles.suspendButton]} disabled={updatingId === pharmacy.id} onPress={() => confirmStatus(pharmacy, 'reject')}><Ionicons name="close-circle-outline" size={18} color="#B91C1C" /><Text style={[styles.actionLabel, styles.suspendLabel]}>Rejeitar</Text></TouchableOpacity> : null}
             </View>
           </View>
         ))
@@ -165,6 +205,8 @@ const styles = StyleSheet.create({
   badgeApproved: { backgroundColor: '#DCFCE7' },
   badgeSuspended: { backgroundColor: '#FECACA' },
   cardField: { color: '#475569', marginTop: 8, fontSize: 13 },
+  locationEditor: { marginTop: 12, padding: 12, backgroundColor: '#F8FAFC', borderRadius: 14 },
+  locationLink: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 16 },
   actionButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, backgroundColor: '#F8FAFC', marginRight: 10, marginBottom: 10 },
   actionLabel: { marginLeft: 8, color: '#2563EB', fontWeight: '700' },

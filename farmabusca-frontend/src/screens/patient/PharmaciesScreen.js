@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import PharmacyCard from '../../components/PharmacyCard';
+import CustomInput from '../../components/CustomInput';
 import { EmptyState, ErrorState, LoadingSkeleton } from '../../components/ScreenState';
 import { getPharmacies } from '../../services/api';
 import { colors, spacing, typography } from '../../theme';
@@ -11,12 +12,17 @@ export default function PharmaciesScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [visibleCount, setVisibleCount] = useState(4);
+  const [name, setName] = useState('');
+  const [location, setLocation] = useState('');
 
   const load = useCallback(async (refresh = false) => {
     refresh ? setRefreshing(true) : setLoading(true);
     setError('');
     try {
-      const response = await getPharmacies();
+      const response = await getPharmacies({
+        ...(name.trim() ? { name: name.trim() } : {}),
+        ...(location.trim() ? { location: location.trim() } : {}),
+      });
       setItems(response.data || []);
       setVisibleCount(4);
     } catch (requestError) {
@@ -25,12 +31,17 @@ export default function PharmaciesScreen({ navigation }) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [name, location]);
 
   useEffect(() => { load(); }, [load]);
 
   return <View style={styles.container}>
     <View style={styles.header}><Text style={styles.title}>Farmácias</Text><Text style={styles.subtitle}>Encontre farmácias aprovadas perto de si.</Text></View>
+    <View style={styles.filters}>
+      <CustomInput label="Pesquisar farmácia" value={name} onChangeText={setName} placeholder="Nome da farmácia" icon="search-outline" />
+      <CustomInput label="Localização" value={location} onChangeText={setLocation} placeholder="Província, distrito ou endereço" icon="location-outline" />
+      {name || location ? <TouchableOpacity style={styles.clearButton} onPress={() => { setName(''); setLocation(''); }}><Text style={styles.clearText}>Limpar filtros</Text></TouchableOpacity> : null}
+    </View>
     {loading ? <View style={styles.pad}><LoadingSkeleton rows={4} /></View> : error && !items.length ? <ErrorState message={error} onRetry={load} /> : <FlatList
       data={items.slice(0, visibleCount)}
       keyExtractor={(item) => String(item.id)}
@@ -49,6 +60,9 @@ const styles = StyleSheet.create({
   header: { padding: spacing.xl, paddingBottom: spacing.md },
   title: { ...typography.title, color: colors.text },
   subtitle: { ...typography.body, color: colors.textSecondary, marginTop: spacing.xs },
+  filters: { paddingHorizontal: spacing.xl, paddingTop: spacing.sm },
+  clearButton: { alignSelf: 'flex-start', marginTop: -4, marginBottom: spacing.sm, paddingVertical: spacing.xs },
+  clearText: { color: colors.primaryDark, fontWeight: '700' },
   list: { padding: spacing.xl, paddingTop: spacing.sm, paddingBottom: 40, flexGrow: 1 },
   pad: { padding: spacing.xl },
 });

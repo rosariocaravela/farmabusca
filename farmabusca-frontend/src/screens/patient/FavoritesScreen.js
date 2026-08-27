@@ -2,11 +2,12 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, RefreshControl, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import MedicineCard from '../../components/MedicineCard';
+import PharmacyCard from '../../components/PharmacyCard';
 import { EmptyState, ErrorState, LoadingSkeleton } from '../../components/ScreenState';
-import { getFavorites, removeFavorite } from '../../services/api';
+import { getFavorites, getPharmacyFavorites, removeFavorite, removePharmacyFavorite } from '../../services/api';
 import { colors, radius, spacing, typography } from '../../theme';
 
-const filters = [['ALL', 'Todos'], ['AVAILABLE', 'Disponíveis'], ['LOW_STOCK', 'Poucas unidades']];
+const filters = [['ALL', 'Todos'], ['AVAILABLE', 'Disponíveis']];
 
 const getStockStatus = (item) => {
 	if (item.stockStatus) return item.stockStatus;
@@ -18,6 +19,7 @@ const getStockStatus = (item) => {
 
 export default function FavoritesScreen({ navigation }) {
 	const [items, setItems] = useState([]);
+	const [pharmacies, setPharmacies] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
 	const [error, setError] = useState('');
@@ -32,8 +34,9 @@ export default function FavoritesScreen({ navigation }) {
 		refresh ? setRefreshing(true) : setLoading(true);
 		setError('');
 		try {
-			const response = await getFavorites();
+			const [response, pharmacyResponse] = await Promise.all([getFavorites(), getPharmacyFavorites()]);
 			setItems((response.data || []).map((favorite) => ({ ...favorite.Medicine, favoriteId: favorite.id })).filter((item) => item.id));
+			setPharmacies((pharmacyResponse.data || []).map((favorite) => favorite.Pharmacy).filter(Boolean));
 		} catch (requestError) {
 			setError(requestError.response ? 'Não foi possível carregar os favoritos.' : 'Sem ligação à Internet.');
 		} finally {
@@ -58,6 +61,14 @@ export default function FavoritesScreen({ navigation }) {
 			setItems((current) => current.filter((item) => item.id !== id));
 		} catch (requestError) {
 			setError('Não foi possível remover o favorito.');
+		}
+	};
+	const removePharmacy = async (id) => {
+		try {
+			await removePharmacyFavorite(id);
+			setPharmacies((current) => current.filter((item) => item.id !== id));
+		} catch (_error) {
+			setError('Não foi possível remover a farmácia favorita.');
 		}
 	};
 
@@ -87,6 +98,7 @@ export default function FavoritesScreen({ navigation }) {
 			numColumns={columns}
 			columnWrapperStyle={styles.column}
 			contentContainerStyle={styles.list}
+			ListHeaderComponent={pharmacies.length ? <View style={styles.pharmacySection}><Text style={styles.sectionTitle}>Farmácias guardadas</Text>{pharmacies.map((pharmacy) => <View key={pharmacy.id} style={styles.pharmacyFavorite}><PharmacyCard item={pharmacy} onPress={() => navigation.navigate('PharmacyMedicines', { pharmacy })} onViewMedicines={() => navigation.navigate('PharmacyMedicines', { pharmacy })} /><TouchableOpacity style={styles.removePharmacy} onPress={() => removePharmacy(pharmacy.id)}><Text style={styles.removePharmacyText}>Remover dos favoritos</Text></TouchableOpacity></View>)}<Text style={styles.sectionTitle}>Medicamentos guardados</Text></View> : null}
 			refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.primary} />}
 			renderItem={({ item }) => <MedicineCard item={item} cardStyle={{ width: cardWidth }} favorite onFavorite={() => remove(item.id)} onPress={() => navigation.navigate('MedicineDetails', { item })} />}
 			ListEmptyComponent={<EmptyState title={items.length ? 'Nenhum favorito neste filtro' : 'Ainda não guardou medicamentos'} message={items.length ? 'Experimente outro filtro para ver os seus medicamentos.' : 'Toque no coração de um medicamento para encontrá-lo aqui.'} icon="heart-outline" actionLabel={items.length ? 'Limpar filtros' : 'Pesquisar medicamentos'} onAction={items.length ? clearFilters : () => navigation.navigate('Pesquisar')} />}
@@ -108,4 +120,5 @@ const styles = StyleSheet.create({
 	list: { padding: spacing.xl, paddingTop: 12, paddingBottom: 40, flexGrow: 1 },
 	column: { justifyContent: 'space-between', gap: spacing.md },
 	pad: { padding: spacing.xl },
+	pharmacySection: { width: '100%', marginBottom: spacing.md }, pharmacyFavorite: { marginBottom: spacing.md }, removePharmacy: { alignSelf: 'flex-end', marginTop: -6, paddingHorizontal: 10, paddingVertical: 8 }, removePharmacyText: { color: colors.error, fontWeight: '700', fontSize: 12 }, sectionTitle: { ...typography.heading, color: colors.text, marginBottom: spacing.sm, marginTop: spacing.sm },
 });
