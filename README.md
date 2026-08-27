@@ -60,7 +60,7 @@ O perfil nasce não aprovado. Depois da aprovação, a farmácia pode criar, con
 
 ### Administrador
 
-Contas administrativas não são criadas no registo público; podem ser criadas por variáveis de ambiente na sincronização da base. O administrador consulta indicadores, analisa documentos, aprova/suspende/rejeita farmácias, pesquisa medicamentos e vê contagens por província.
+Contas administrativas não são criadas no registo público; podem ser criadas por variáveis de ambiente na sincronização da base. O administrador consulta indicadores, analisa documentos, aprova/suspende/rejeita farmácias e vê contagens por província. O catálogo e a disponibilidade dos medicamentos são responsabilidade de cada farmácia.
 
 ## 3. Estrutura do projeto
 
@@ -274,7 +274,6 @@ Base típica: `http://localhost:5000/api`. Swagger parcial: `http://localhost:50
 | GET | `/admin/pharmacies` | `ADMIN` | Pesquisar/filtrar farmácias. |
 | PUT | `/admin/pharmacies/:id/status` | `ADMIN` | Aprovar/suspender/rejeitar. |
 | PUT | `/admin/pharmacies/:id/approve` | `ADMIN` | Aprovar. |
-| GET | `/admin/medicines` | `ADMIN` | Pesquisar/filtrar medicamentos. |
 | GET | `/admin/analytics/summary` | `ADMIN` | Indicadores agregados. |
 
 Não existem rotas próprias de categorias, pedidos ou reservas.

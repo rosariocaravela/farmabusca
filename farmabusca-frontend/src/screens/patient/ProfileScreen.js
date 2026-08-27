@@ -526,6 +526,18 @@ export default function ProfileScreen({ navigation }) {
 
       <View style={styles.actionsContainer}>
         <CustomButton title={saving ? 'Salvando...' : isPharmacy ? (pharmacyId ? 'Salvar alterações' : 'Criar perfil da farmácia') : 'Atualizar perfil'} loading={saving} icon="save-outline" onPress={isPharmacy ? () => saveProfile() : savePatientProfile} />
+        {isPharmacy && pharmacyId ? (
+          <CustomButton
+            title="Enviar ou actualizar documentos"
+            variant="secondary"
+            icon="document-text-outline"
+            onPress={() => {
+              const parentNavigation = navigation.getParent();
+              if (parentNavigation) parentNavigation.navigate('PharmacyProfileDocs');
+              else navigation.navigate('PharmacyProfileDocs');
+            }}
+          />
+        ) : null}
         <CustomButton title="Sair" variant="dangerSecondary" icon="log-out-outline" style={styles.logoutButton} onPress={() => logout('Login')} />
       </View>
 

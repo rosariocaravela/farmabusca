@@ -5,7 +5,6 @@ const {
   listAllPharmacies,
   updatePharmacyStatus,
   getAdminSummary,
-  listAdminMedicines,
   approvePharmacy,
   updateUserStatus,
   listAuditLogs,
@@ -22,7 +21,6 @@ router.get('/pharmacies/pending', authMiddleware, roleMiddleware(['ADMIN']), lis
 router.get('/pharmacies', authMiddleware, roleMiddleware(['ADMIN']), listAllPharmacies);
 router.put('/pharmacies/:id/status', authMiddleware, roleMiddleware(['ADMIN']), updatePharmacyStatus);
 router.put('/pharmacies/:id/location', authMiddleware, roleMiddleware(['ADMIN']), updatePharmacyLocation);
-router.get('/medicines', authMiddleware, roleMiddleware(['ADMIN']), listAdminMedicines);
 router.get('/analytics/summary', authMiddleware, roleMiddleware(['ADMIN']), getAdminSummary);
 router.get('/audit-logs', authMiddleware, roleMiddleware(['ADMIN']), listAuditLogs);
 router.put('/pharmacies/:id/approve', authMiddleware, roleMiddleware(['ADMIN']), approvePharmacy);

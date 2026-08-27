@@ -67,35 +67,56 @@ const withPublicImage = (pharmacy) => {
   return { ...data, image: data.image || getEstablishmentPhoto(data.documents) };
 };
 
+const uploadPharmacyDocuments = async (files = [], currentDocuments = [], currentImage = null) => {
+  const documents = Array.isArray(currentDocuments) ? currentDocuments.map((document) => ({ ...document })) : [];
+  let image = currentImage;
+
+  for (const file of files) {
+    try {
+      const result = await uploadImage(file.buffer, 'pharmacy_documents');
+      const url = result?.secure_url || null;
+      documents.push({
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+        url,
+        uploadedAt: new Date().toISOString(),
+      });
+      if (!image && /^estabelecimento-/i.test(file.originalname || '')) image = url;
+    } catch (error) {
+      console.error('Document upload error', error);
+      const uploadError = new Error(`Falha ao guardar o documento ${file.originalname}`);
+      uploadError.statusCode = 502;
+      throw uploadError;
+    }
+  }
+
+  return { documents, image };
+};
+
 const createProfile = async (req, res, next) => {
   try {
     const profileData = getProfilePayload(req.body);
     const existing = await Pharmacy.findOne({ where: { userId: req.user.id } });
     if (existing) {
+      const requestedImage = await getImageUrlFromRequest(req);
+      const uploaded = await uploadPharmacyDocuments(
+        req.files?.documents || [],
+        existing.documents,
+        requestedImage || existing.image,
+      );
       await existing.update({
         ...profileData,
         phone: profileData.phone || existing.phone || req.user.phone,
+        image: uploaded.image,
+        documents: uploaded.documents,
       });
       return res.json({ success: true, message: 'Dados da farmácia atualizados', data: existing });
     }
 
     let image = await getImageUrlFromRequest(req);
-    // handle documents uploads
-    let documentsMeta = [];
-    if (req.files && req.files.documents && req.files.documents.length) {
-      for (const file of req.files.documents) {
-        try {
-          const r = await uploadImage(file.buffer, 'pharmacy_documents');
-          documentsMeta.push({ originalName: file.originalname, url: r?.secure_url || null });
-          if (!image && /^estabelecimento-/i.test(file.originalname || '')) image = r?.secure_url || null;
-        } catch (err) {
-          console.error('Document upload error', err);
-          const uploadError = new Error(`Falha ao guardar o documento ${file.originalname}`);
-          uploadError.statusCode = 502;
-          throw uploadError;
-        }
-      }
-    }
+    const uploaded = await uploadPharmacyDocuments(req.files?.documents || [], [], image);
+    image = uploaded.image;
 
     const pharmacy = await Pharmacy.create({
       ...profileData,
@@ -104,7 +125,7 @@ const createProfile = async (req, res, next) => {
       userId: req.user.id,
       approved: false,
       suspended: false,
-      documents: documentsMeta,
+      documents: uploaded.documents,
     });
     res.status(201).json({ success: true, message: 'Perfil da farmácia criado', data: pharmacy });
   } catch (error) {
@@ -120,27 +141,16 @@ const updateProfile = async (req, res, next) => {
     }
 
     let image = await getImageUrlFromRequest(req);
-    // handle documents uploads (append)
-    let documentsMeta = pharmacy.documents || [];
-    if (req.files && req.files.documents && req.files.documents.length) {
-      for (const file of req.files.documents) {
-        try {
-          const r = await uploadImage(file.buffer, 'pharmacy_documents');
-          documentsMeta.push({ originalName: file.originalname, url: r?.secure_url || null });
-          if (!image && /^estabelecimento-/i.test(file.originalname || '')) image = r?.secure_url || null;
-        } catch (err) {
-          console.error('Document upload error', err);
-          const uploadError = new Error(`Falha ao guardar o documento ${file.originalname}`);
-          uploadError.statusCode = 502;
-          throw uploadError;
-        }
-      }
-    }
+    const uploaded = await uploadPharmacyDocuments(
+      req.files?.documents || [],
+      pharmacy.documents,
+      image || pharmacy.image,
+    );
 
     await pharmacy.update({
       ...getProfilePayload(req.body),
-      ...(image ? { image } : {}),
-      documents: documentsMeta,
+      ...(uploaded.image ? { image: uploaded.image } : {}),
+      documents: uploaded.documents,
     });
     res.json({ success: true, message: 'Perfil atualizado', data: pharmacy });
   } catch (error) {

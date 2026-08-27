@@ -95,7 +95,6 @@ export const updateAdminUserStatus = (id, isActive) => api.put(`/admin/users/${i
 export const getAdminAuditLogs = (params) => api.get('/admin/audit-logs', { params }).then((r) => r.data.data);
 export const updateAdminPharmacyStatus = (id, action) => api.put(`/admin/pharmacies/${id}/status`, { action }).then((r) => r.data.data);
 export const updateAdminPharmacyLocation = (id, payload) => api.put(`/admin/pharmacies/${id}/location`, payload).then((r) => r.data.data);
-export const getAdminMedicines = (params) => api.get('/admin/medicines', { params }).then((r) => r.data.data);
 export const getAdminSummary = () => api.get('/admin/analytics/summary').then((r) => r.data.data);
 export const approvePharmacy = (id) => api.put(`/admin/pharmacies/${id}/approve`).then((r) => r.data.data);
 export const getMedicines = (params) => api.get('/medicines', { params }).then((r) => r.data);

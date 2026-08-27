@@ -1,4 +1,4 @@
-const { sequelize, User, Pharmacy, Medicine, Category, AuditLog } = require('../models');
+const { sequelize, User, Pharmacy, AuditLog } = require('../models');
 const { Op } = require('sequelize');
 const { SAFE_USER_ATTRIBUTES, sanitizeUser } = require('../utils/authPolicy');
 const { validateCoordinates } = require('../utils/geo');
@@ -132,10 +132,6 @@ const getAdminSummary = async (req, res, next) => {
     const pendingPharmacies = await Pharmacy.count({ where: { approved: false, suspended: false, reviewStatus: 'PENDING' } });
     const rejectedPharmacies = await Pharmacy.count({ where: { reviewStatus: 'REJECTED' } });
     const suspendedPharmacies = await Pharmacy.count({ where: { suspended: true } });
-    const totalMedicines = await Medicine.count();
-    const availableMedicines = await Medicine.count({ where: { stockStatus: 'AVAILABLE' } });
-    const lowStockMedicines = await Medicine.count({ where: { stockStatus: 'LOW_STOCK' } });
-    const outOfStockMedicines = await Medicine.count({ where: { stockStatus: 'OUT_OF_STOCK' } });
     const pharmaciesByProvince = await Pharmacy.findAll({
       where: { approved: true, suspended: false },
       attributes: ['province', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
@@ -155,10 +151,6 @@ const getAdminSummary = async (req, res, next) => {
         pendingPharmacies,
         rejectedPharmacies,
         suspendedPharmacies,
-        totalMedicines,
-        availableMedicines,
-        lowStockMedicines,
-        outOfStockMedicines,
         provincesCount,
         pharmaciesByProvince,
       },
@@ -181,34 +173,6 @@ const updateUserStatus = async (req, res, next) => {
     return res.json({ success: true, message: isActive ? 'Utilizador activado' : 'Utilizador suspenso', data: sanitizeUser(user) });
   } catch (error) {
     return next(error);
-  }
-};
-
-const listAdminMedicines = async (req, res, next) => {
-  try {
-    const { search, category } = req.query;
-    const where = {};
-
-    if (search) {
-      where[Op.or] = [
-        { name: { [Op.iLike]: `%${search}%` } },
-        { description: { [Op.iLike]: `%${search}%` } },
-      ];
-    }
-
-    const include = [
-      { model: Category, attributes: ['id', 'name'] },
-      { model: Pharmacy, attributes: ['id', 'name', 'province'], where: { approved: true, suspended: false }, required: true },
-    ];
-    if (category) {
-      include[0].where = { name: { [Op.iLike]: `%${category}%` } };
-      include[0].required = true;
-    }
-
-    const medicines = await Medicine.findAll({ where, include, order: [['name', 'ASC']] });
-    res.json({ success: true, data: medicines });
-  } catch (error) {
-    next(error);
   }
 };
 
@@ -269,7 +233,6 @@ module.exports = {
   listAllPharmacies,
   updatePharmacyStatus,
   getAdminSummary,
-  listAdminMedicines,
   approvePharmacy,
   updateUserStatus,
   listAuditLogs,

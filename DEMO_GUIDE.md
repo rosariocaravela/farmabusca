@@ -58,7 +58,7 @@ Consulte as palavras-passe apenas no ficheiro local gerado pelo seeder.
 4. Entre como farmácia aprovada, abra o painel e o inventário.
 5. Altere o preço ou disponibilidade de um medicamento e guarde.
 6. Volte ao paciente e confirme que a alteração aparece na pesquisa.
-7. Entre como administrador, mostre os totais, pacientes, farmácias e medicamentos.
+7. Entre como administrador, mostre os totais de pacientes e farmácias.
 8. Abra a farmácia pendente e aprove-a, confirmando primeiro a acção.
 9. Demonstre a suspensão/reactivação de um utilizador e termine a sessão.
 

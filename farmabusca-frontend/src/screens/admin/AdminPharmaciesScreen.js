@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Linking } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Linking, Modal, Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
 import SearchBar from '../../components/SearchBar';
-import CustomInput from '../../components/CustomInput';
-import { getAdminPharmacies, updateAdminPharmacyLocation, updateAdminPharmacyStatus } from '../../services/api';
+import { getAdminPharmacies, updateAdminPharmacyStatus } from '../../services/api';
 
 export default function AdminPharmaciesScreen() {
   const [search, setSearch] = useState('');
@@ -13,8 +14,10 @@ export default function AdminPharmaciesScreen() {
   const [loading, setLoading] = useState(true);
   const [pharmacies, setPharmacies] = useState([]);
   const [updatingId, setUpdatingId] = useState(null);
-  const [editingLocationId, setEditingLocationId] = useState(null);
-  const [locationDraft, setLocationDraft] = useState({ neighborhood: '', address: '', latitude: '', longitude: '' });
+  const [picker, setPicker] = useState(null);
+  const [confirmation, setConfirmation] = useState(null);
+  const [documentsToView, setDocumentsToView] = useState(null);
+  const [downloadingDocument, setDownloadingDocument] = useState(null);
 
   const loadPharmacies = async () => {
     setLoading(true);
@@ -33,6 +36,10 @@ export default function AdminPharmaciesScreen() {
     loadPharmacies();
   }, [search, district, province, status]);
 
+  const provinceOptions = [...new Set(pharmacies.map((pharmacy) => pharmacy.province).filter(Boolean))].sort();
+  const districtOptions = [...new Set(pharmacies.filter((pharmacy) => !province || pharmacy.province === province).map((pharmacy) => pharmacy.district).filter(Boolean))].sort();
+  const pickerOptions = picker === 'province' ? provinceOptions : districtOptions;
+
   const handleStatus = async (id, action) => {
     setUpdatingId(id);
     try {
@@ -48,46 +55,47 @@ export default function AdminPharmaciesScreen() {
   };
 
   const confirmStatus = (pharmacy, action) => {
-    const label = action === 'approve' ? 'aprovar' : action === 'reject' ? 'rejeitar' : 'suspender';
-    Alert.alert(
-      `${label.charAt(0).toUpperCase()}${label.slice(1)} farmácia?`,
-      `Confirma que pretende ${label} ${pharmacy.name || 'esta farmácia'}?`,
-      [{ text: 'Cancelar', style: 'cancel' }, { text: label.charAt(0).toUpperCase() + label.slice(1), style: action === 'approve' ? 'default' : 'destructive', onPress: () => handleStatus(pharmacy.id, action) }],
-    );
+    setConfirmation({ type: 'status', pharmacy, action });
   };
 
-  const editLocation = (pharmacy) => {
-    setEditingLocationId(pharmacy.id);
-    setLocationDraft({ neighborhood: pharmacy.neighborhood || '', address: pharmacy.address || '', latitude: String(pharmacy.latitude ?? ''), longitude: String(pharmacy.longitude ?? '') });
+  const executeConfirmation = async () => {
+    const pending = confirmation;
+    if (!pending) return;
+    setConfirmation(null);
+    return handleStatus(pending.pharmacy.id, pending.action);
   };
-
-  const saveLocation = (pharmacy) => Alert.alert('Actualizar localização?', `Confirma as novas coordenadas de ${pharmacy.name}?`, [
-    { text: 'Cancelar', style: 'cancel' },
-    { text: 'Actualizar', onPress: async () => {
-      setUpdatingId(pharmacy.id);
-      try {
-        await updateAdminPharmacyLocation(pharmacy.id, locationDraft);
-        setEditingLocationId(null);
-        Alert.alert('Sucesso', 'Localização actualizada e registada na auditoria.');
-        loadPharmacies();
-      } catch (error) {
-        Alert.alert('Erro', error.response?.data?.message || 'Não foi possível actualizar a localização.');
-      } finally { setUpdatingId(null); }
-    } },
-  ]);
 
   const handleViewDocuments = (documents) => {
     if (!Array.isArray(documents) || documents.length === 0) {
       return Alert.alert('Documentos', 'Nenhum documento enviado.');
     }
+    setDocumentsToView(documents);
+  };
 
-    const message = documents.map((doc) => `• ${doc.originalName || 'Documento'}\n`).join('');
-    Alert.alert('Documentos', message, [
-      { text: 'Fechar', style: 'cancel' },
-      ...(documents.some((doc) => doc.url)
-        ? [{ text: 'Abrir primeiro', onPress: () => Linking.openURL(documents[0].url) }]
-        : []),
-    ]);
+  const handleDownloadDocument = async (document, index) => {
+    if (!document.url) return;
+    setDownloadingDocument(index);
+    try {
+      if (Platform.OS === 'web') {
+        const link = globalThis.document.createElement('a');
+        link.href = document.url;
+        link.download = document.originalName || `documento-${index + 1}`;
+        link.target = '_blank';
+        link.rel = 'noreferrer';
+        globalThis.document.body.appendChild(link);
+        link.click();
+        globalThis.document.body.removeChild(link);
+        return;
+      }
+      const fileName = (document.originalName || `documento-${index + 1}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+      const result = await FileSystem.downloadAsync(document.url, `${FileSystem.cacheDirectory}${fileName}`);
+      if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(result.uri, { dialogTitle: 'Guardar documento' });
+      else Alert.alert('Download concluído', 'O documento foi guardado temporariamente no dispositivo.');
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível baixar este documento. Tente novamente.');
+    } finally {
+      setDownloadingDocument(null);
+    }
   };
 
   return (
@@ -99,10 +107,12 @@ export default function AdminPharmaciesScreen() {
 
       <View style={styles.filterRow}>
         <View style={styles.filterColumn}>
-          <CustomInput label="Distrito" placeholder="Filtrar por distrito" value={district} onChangeText={setDistrict} />
+          <Text style={styles.filterLabel}>Distrito</Text>
+          <TouchableOpacity disabled={!province} style={[styles.selectField, !province && styles.selectFieldDisabled]} onPress={() => setPicker('district')}><Text style={district ? styles.selectValue : styles.selectPlaceholder}>{district || (province ? 'Selecionar distrito' : 'Escolha a província primeiro')}</Text><Ionicons name="chevron-down" size={18} color="#64748B" /></TouchableOpacity>
         </View>
         <View style={[styles.filterColumn, styles.filterColumnRight]}>
-          <CustomInput label="Província" placeholder="Filtrar por província" value={province} onChangeText={setProvince} />
+          <Text style={styles.filterLabel}>Província</Text>
+          <TouchableOpacity style={styles.selectField} onPress={() => setPicker('province')}><Text style={province ? styles.selectValue : styles.selectPlaceholder}>{province || 'Selecionar província'}</Text><Ionicons name="chevron-down" size={18} color="#64748B" /></TouchableOpacity>
         </View>
       </View>
 
@@ -141,14 +151,6 @@ export default function AdminPharmaciesScreen() {
             <Text style={styles.cardField}>Telefone: {pharmacy.phone || pharmacy.User?.phone || 'Não informado'}</Text>
             <Text style={styles.cardField}>Documentos: {Array.isArray(pharmacy.documents) ? pharmacy.documents.length : 0}</Text>
             <Text style={styles.cardField}>Localização: {[pharmacy.neighborhood, pharmacy.address].filter(Boolean).join(' · ') || 'Não informada'}</Text>
-            <Text style={styles.cardField}>Coordenadas: {pharmacy.latitude != null && pharmacy.longitude != null ? `${pharmacy.latitude}, ${pharmacy.longitude}` : 'Não informadas'}</Text>
-            {editingLocationId === pharmacy.id ? <View style={styles.locationEditor}>
-              <CustomInput label="Bairro" value={locationDraft.neighborhood} onChangeText={(value) => setLocationDraft((draft) => ({ ...draft, neighborhood: value }))} />
-              <CustomInput label="Endereço" value={locationDraft.address} onChangeText={(value) => setLocationDraft((draft) => ({ ...draft, address: value }))} />
-              <View style={styles.filterRow}><View style={styles.filterColumn}><CustomInput label="Latitude" keyboardType="numeric" value={locationDraft.latitude} onChangeText={(value) => setLocationDraft((draft) => ({ ...draft, latitude: value }))} /></View><View style={styles.filterColumnRight}><CustomInput label="Longitude" keyboardType="numeric" value={locationDraft.longitude} onChangeText={(value) => setLocationDraft((draft) => ({ ...draft, longitude: value }))} /></View></View>
-              <View style={styles.actionsRow}><TouchableOpacity style={[styles.actionButton, styles.approveButton]} onPress={() => saveLocation(pharmacy)}><Text style={styles.approveLabel}>Guardar localização</Text></TouchableOpacity><TouchableOpacity style={styles.actionButton} onPress={() => setEditingLocationId(null)}><Text style={styles.actionLabel}>Cancelar</Text></TouchableOpacity></View>
-            </View> : <TouchableOpacity style={styles.locationLink} onPress={() => editLocation(pharmacy)}><Ionicons name="location-outline" size={17} color="#2563EB" /><Text style={styles.actionLabel}>Corrigir localização</Text></TouchableOpacity>}
-
             <View style={styles.actionsRow}>
               <TouchableOpacity style={styles.actionButton} onPress={() => handleViewDocuments(pharmacy.documents)}>
                 <Ionicons name="document-text-outline" size={18} color="#2563EB" />
@@ -175,6 +177,45 @@ export default function AdminPharmaciesScreen() {
           </View>
         ))
       )}
+      <Modal visible={Boolean(picker)} transparent animationType="fade" onRequestClose={() => setPicker(null)}>
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setPicker(null)}>
+          <View style={styles.pickerModal} onStartShouldSetResponder={() => true}>
+            <View style={styles.pickerHeader}><Text style={styles.pickerTitle}>{picker === 'province' ? 'Selecionar província' : 'Selecionar distrito'}</Text><TouchableOpacity onPress={() => setPicker(null)}><Ionicons name="close" size={22} color="#475569" /></TouchableOpacity></View>
+            <TouchableOpacity style={styles.optionItem} onPress={() => { picker === 'province' ? setProvince('') : setDistrict(''); setPicker(null); }}><Text style={styles.clearOption}>Todos</Text></TouchableOpacity>
+            {pickerOptions.map((option) => <TouchableOpacity key={option} style={styles.optionItem} onPress={() => { if (picker === 'province') { setProvince(option); setDistrict(''); } else setDistrict(option); setPicker(null); }}><Text style={styles.optionText}>{option}</Text></TouchableOpacity>)}
+            {!pickerOptions.length ? <Text style={styles.noOptions}>Nenhuma opção disponível.</Text> : null}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <Modal visible={Boolean(documentsToView)} transparent animationType="fade" onRequestClose={() => setDocumentsToView(null)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.pickerModal}>
+            <View style={styles.pickerHeader}><Text style={styles.pickerTitle}>Documentos enviados</Text><TouchableOpacity onPress={() => setDocumentsToView(null)}><Ionicons name="close" size={22} color="#475569" /></TouchableOpacity></View>
+            {(documentsToView || []).map((document, index) => (
+              <View key={`${document.url || document.originalName}-${index}`} style={styles.documentRow}>
+                <Ionicons name="document-text-outline" size={19} color={document.url ? '#2563EB' : '#94A3B8'} />
+                <Text style={styles.documentName} numberOfLines={1}>{document.originalName || `Documento ${index + 1}`}</Text>
+                <View style={styles.documentActions}>
+                  <TouchableOpacity disabled={!document.url} onPress={() => document.url && Linking.openURL(document.url)}><Text style={document.url ? styles.openDocument : styles.unavailableDocument}>{document.url ? 'Abrir' : 'Indisponível'}</Text></TouchableOpacity>
+                  {document.url ? <TouchableOpacity disabled={downloadingDocument === index} onPress={() => handleDownloadDocument(document, index)}><Text style={styles.downloadDocument}>{downloadingDocument === index ? 'A baixar...' : 'Baixar'}</Text></TouchableOpacity> : null}
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={Boolean(confirmation)} transparent animationType="fade" onRequestClose={() => setConfirmation(null)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.confirmModal}>
+            <Text style={styles.pickerTitle}>{`${confirmation?.action === 'approve' ? 'Aprovar' : confirmation?.action === 'reject' ? 'Rejeitar' : 'Suspender'} farmácia?`}</Text>
+            <Text style={styles.confirmMessage}>Confirma esta acção para {confirmation?.pharmacy?.name || 'a farmácia'}?</Text>
+            <View style={styles.confirmActions}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setConfirmation(null)}><Text style={styles.cancelText}>Cancelar</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.confirmButton, confirmation?.action && confirmation.action !== 'approve' ? styles.dangerConfirmButton : null]} onPress={executeConfirmation}><Text style={styles.confirmText}>Confirmar</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -190,6 +231,10 @@ const styles = StyleSheet.create({
   filterItem: { flex: 1, marginRight: 10, padding: 12, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E5E7EB' },
   filterLabel: { color: '#6B7280', fontSize: 12, marginBottom: 6 },
   filterValue: { color: '#111827', fontSize: 14, fontWeight: '700' },
+  selectField: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB' },
+  selectValue: { color: '#111827', fontSize: 14, fontWeight: '700' },
+  selectPlaceholder: { color: '#64748B', fontSize: 14 },
+  selectFieldDisabled: { backgroundColor: '#F1F5F9' },
   statusRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, marginBottom: 16 },
   statusButton: { flex: 1, marginHorizontal: 4, borderRadius: 16, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: '#CBD5E1', backgroundColor: '#FFFFFF' },
   statusButtonActive: { borderColor: '#2563EB', backgroundColor: '#DBEAFE' },
@@ -205,8 +250,6 @@ const styles = StyleSheet.create({
   badgeApproved: { backgroundColor: '#DCFCE7' },
   badgeSuspended: { backgroundColor: '#FECACA' },
   cardField: { color: '#475569', marginTop: 8, fontSize: 13 },
-  locationEditor: { marginTop: 12, padding: 12, backgroundColor: '#F8FAFC', borderRadius: 14 },
-  locationLink: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 16 },
   actionButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, backgroundColor: '#F8FAFC', marginRight: 10, marginBottom: 10 },
   actionLabel: { marginLeft: 8, color: '#2563EB', fontWeight: '700' },
@@ -216,4 +259,26 @@ const styles = StyleSheet.create({
   suspendLabel: { color: '#991B1B' },
   emptyState: { marginTop: 28, alignItems: 'center' },
   emptyText: { color: '#475569', fontSize: 15 },
+  modalBackdrop: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(15, 23, 42, 0.45)' },
+  pickerModal: { maxHeight: '80%', backgroundColor: '#FFFFFF', borderRadius: 18, padding: 18 },
+  pickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  pickerTitle: { fontSize: 18, fontWeight: '800', color: '#1F2937' },
+  optionItem: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  optionText: { color: '#1F2937', fontSize: 15, fontWeight: '600' },
+  clearOption: { color: '#2563EB', fontSize: 15, fontWeight: '700' },
+  noOptions: { color: '#64748B', paddingVertical: 18 },
+  documentRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  documentName: { color: '#334155', fontSize: 14, flex: 1 },
+  documentActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  openDocument: { color: '#2563EB', fontWeight: '800' },
+  downloadDocument: { color: '#047857', fontWeight: '800' },
+  unavailableDocument: { color: '#94A3B8', fontWeight: '700' },
+  confirmModal: { backgroundColor: '#FFFFFF', borderRadius: 18, padding: 20 },
+  confirmMessage: { color: '#475569', fontSize: 14, marginTop: 10, marginBottom: 20 },
+  confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+  cancelButton: { paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: '#F1F5F9' },
+  cancelText: { color: '#475569', fontWeight: '800' },
+  confirmButton: { paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: '#059669' },
+  dangerConfirmButton: { backgroundColor: '#DC2626' },
+  confirmText: { color: '#FFFFFF', fontWeight: '800' },
 });
