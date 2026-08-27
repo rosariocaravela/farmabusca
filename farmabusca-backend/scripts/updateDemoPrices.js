@@ -2,20 +2,24 @@ require('dotenv').config();
 const { sequelize, Medicine, Pharmacy } = require('../src/models');
 
 const prices = [
-  ['Farmácia Baixa Saúde', 'Paracetamol', 70],
-  ['Farmácia Alto Maé Central', 'Paracetamol', 75],
-  ['Farmácia Baixa Saúde', 'Ibuprofeno', 125],
-  ['Farmácia Alto Maé Central', 'Amoxicilina', 275],
-  ['Farmácia Baixa Saúde', 'Loratadina', 95],
-  ['Farmácia Alto Maé Central', 'Vitamina C', 145],
-  ['Farmácia Baixa Saúde', 'Azitromicina', 350],
-  ['Farmácia Alto Maé Central', 'Cetirizina', 105],
-  ['Farmácia Baixa Saúde', 'Amoxicilina', 290],
-  ['Farmácia Alto Maé Central', 'Complexo B', 210],
-  ['Farmácia Costa do Sol Demo', 'Paracetamol', 68],
-  ['Farmácia Costa do Sol Demo', 'Ibuprofeno', 120],
-  ['Farmácia Matola Centro Demo', 'Amoxicilina', 285],
-  ['Farmácia Matola Centro Demo', 'Loratadina', 90],
+  ['Farmácia Baixa Saúde', 'Paracetamol', 15],
+  ['Farmácia Alto Maé Central', 'Paracetamol', 18],
+  ['Farmácia Baixa Saúde', 'Ibuprofeno', 25],
+  ['Farmácia Alto Maé Central', 'Omeprazol', 30],
+  ['Farmácia Baixa Saúde', 'Loratadina', 22],
+  ['Farmácia Alto Maé Central', 'Vitamina C', 20],
+  ['Farmácia Baixa Saúde', 'Soro de Reidratação', 12],
+  ['Farmácia Alto Maé Central', 'Cetirizina', 22],
+  ['Farmácia Baixa Saúde', 'Amoxicilina', 35],
+  ['Farmácia Alto Maé Central', 'Complexo B', 28],
+  ['Farmácia Costa do Sol Demo', 'Paracetamol', 16],
+  ['Farmácia Costa do Sol Demo', 'Ibuprofeno', 26],
+  ['Farmácia Matola Centro Demo', 'Omeprazol', 32],
+  ['Farmácia Matola Centro Demo', 'Loratadina', 20],
+  ['Farmácia Baixa Saúde', 'Azitromicina', 35],
+  ['Farmácia Baixa Saúde', 'Amoxicilina', 35],
+  ['Farmácia Alto Maé Central', 'Amoxicilina', 35],
+  ['Farmácia Matola Centro Demo', 'Amoxicilina', 35],
 ];
 
 async function run() {

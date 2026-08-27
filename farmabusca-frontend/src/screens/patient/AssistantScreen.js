@@ -5,7 +5,6 @@ import * as Location from 'expo-location';
 import { addPharmacyFavorite, askAssistant } from '../../services/api';
 import { colors, radius, shadows, spacing, typography } from '../../theme';
 
-const suggestions = ['Encontrar medicamento perto', 'Farmácia mais próxima', 'Comparar preços', 'Pesquisar por bairro'];
 const welcome = { id: 'welcome', from: 'assistant', text: 'Olá! Sou o Assistente Farmabusca. Diga o medicamento que procura ou peça uma farmácia próxima.' };
 
 export default function AssistantScreen({ navigation, route }) {
@@ -17,6 +16,9 @@ export default function AssistantScreen({ navigation, route }) {
   const [pending, setPending] = useState(null);
   const [locationAction, setLocationAction] = useState(null);
   const listRef = useRef(null);
+  const suggestions = medicineName
+    ? [`Encontrar ${medicineName}`, `Comparar preços de ${medicineName}`, 'Farmácia mais próxima', 'Pesquisar por bairro']
+    : ['Encontrar medicamento perto', 'Farmácia mais próxima', 'Comparar preços', 'Pesquisar por bairro'];
 
   useEffect(() => { const timer = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 60); return () => clearTimeout(timer); }, [messages, loading]);
 
@@ -71,8 +73,8 @@ export default function AssistantScreen({ navigation, route }) {
   return <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <View style={styles.header}><View style={styles.avatar}><Ionicons name="sparkles-outline" size={22} color={colors.surface} /></View><View style={styles.headerCopy}><Text style={styles.title}>Assistente Farmabusca</Text><Text style={styles.subtitle}>Pesquisa inteligente na base do FarmaBusca</Text></View></View>
     <FlatList ref={listRef} data={messages} keyExtractor={(item) => item.id} contentContainerStyle={styles.list} renderItem={({ item }) => <View style={[styles.messageRow, item.from === 'user' && styles.userRow]}><View style={[styles.bubble, item.from === 'user' ? styles.userBubble : styles.assistantBubble]}><Text style={[styles.messageText, item.from === 'user' && styles.userText]}>{item.text}</Text>{item.results?.map(resultCard)}</View></View>} ListFooterComponent={loading ? <Text style={styles.typing}>A processar o pedido...</Text> : null} />
-    {locationAction ? <View style={styles.locationBox}><Text style={styles.locationTitle}>Como deseja pesquisar?</Text><View style={styles.locationButtons}><TouchableOpacity style={styles.primarySmall} onPress={allowLocation} disabled={loading}><Text style={styles.primarySmallText}>Permitir localização</Text></TouchableOpacity><TouchableOpacity style={styles.secondarySmall} onPress={() => { setLocationAction(null); setQuestion('Procure no bairro da '); }}><Text style={styles.secondarySmallText}>Indicar bairro</Text></TouchableOpacity><TouchableOpacity style={styles.secondarySmall} onPress={() => { setLocationAction(null); setPending(null); }}><Text style={styles.secondarySmallText}>Agora não</Text></TouchableOpacity></View></View> : null}
-    <View style={styles.suggestions}>{suggestions.map((item) => <TouchableOpacity key={item} style={styles.suggestion} onPress={() => item === 'Pesquisar por bairro' ? setQuestion('Procure no bairro da ') : send(item)} disabled={loading}><Text style={styles.suggestionText}>{item}</Text></TouchableOpacity>)}</View>
+    {locationAction ? <View style={styles.locationBox}><Text style={styles.locationTitle}>Como deseja pesquisar?</Text><View style={styles.locationButtons}><TouchableOpacity style={styles.primarySmall} onPress={allowLocation} disabled={loading}><Text style={styles.primarySmallText}>Permitir localização</Text></TouchableOpacity><TouchableOpacity style={styles.secondarySmall} onPress={() => { setLocationAction(null); setQuestion('Procure no bairro ou cidade de '); }}><Text style={styles.secondarySmallText}>Indicar bairro ou cidade</Text></TouchableOpacity><TouchableOpacity style={styles.secondarySmall} onPress={() => { setLocationAction(null); setPending(null); }}><Text style={styles.secondarySmallText}>Agora não</Text></TouchableOpacity></View></View> : null}
+    <View style={styles.suggestions}>{suggestions.map((item) => <TouchableOpacity key={item} style={styles.suggestion} onPress={() => item === 'Pesquisar por bairro' ? setQuestion('Procure no bairro ou cidade de ') : send(item)} disabled={loading}><Text style={styles.suggestionText}>{item}</Text></TouchableOpacity>)}</View>
     {error ? <View style={styles.errorRow}><Text style={styles.error}>{error}</Text><TouchableOpacity onPress={() => pending && send(pending.message, { context: pending.context, location: pending.location }, false)}><Text style={styles.retry}>Tentar novamente</Text></TouchableOpacity><TouchableOpacity onPress={() => navigation.navigate('Pesquisar')}><Text style={styles.retry}>Pesquisa normal</Text></TouchableOpacity></View> : null}
     <View style={styles.composer}><TextInput value={question} onChangeText={setQuestion} placeholder="Escreva a sua mensagem..." placeholderTextColor={colors.textSecondary} style={styles.input} multiline maxLength={500} editable={!loading} /><TouchableOpacity style={[styles.send, (!question.trim() || loading) && styles.sendDisabled]} onPress={() => send()} disabled={!question.trim() || loading}><Ionicons name="arrow-forward" size={21} color={colors.surface} /></TouchableOpacity></View>
     <Text style={styles.disclaimer}>O assistente ajuda a localizar medicamentos e farmácias. Não substitui a orientação de um médico ou farmacêutico.</Text>

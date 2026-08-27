@@ -44,6 +44,7 @@ export default function PlansScreen({ navigation }) {
   const [phone, setPhone] = useState(user?.phone || '');
   const [loading, setLoading] = useState(false);
   const [payment, setPayment] = useState(null);
+  const [paymentError, setPaymentError] = useState('');
 
   const choosePlan = (plan) => {
     setSelected(plan.id);
@@ -54,7 +55,14 @@ export default function PlansScreen({ navigation }) {
       Alert.alert('Plano gratuito', 'O plano Grátis já está disponível para a sua conta.');
       return;
     }
+    const phoneDigits = phone.replace(/\D/g, '');
+    const localPhone = phoneDigits.startsWith('258') ? phoneDigits.slice(3) : phoneDigits;
+    if (!/^(84|85)\d{7}$/.test(localPhone)) {
+      setPaymentError('Introduza um número M-Pesa válido: 84 ou 85 seguido de 7 dígitos.');
+      return;
+    }
     setLoading(true);
+    setPaymentError('');
     try {
       const requestId = `PLAN-${selected}-${Date.now()}`;
       const response = await initiatePlanPayment(selected, phone.trim(), requestId);
@@ -64,7 +72,9 @@ export default function PlansScreen({ navigation }) {
       }
       Alert.alert(response.data?.status === 'PAID' ? 'Plano ativado' : 'Pedido pendente', response.message || 'Confirme o pagamento no seu telemóvel M-Pesa.');
     } catch (error) {
-      Alert.alert('Pagamento não iniciado', error.response?.data?.message || 'Verifique o número M-Pesa e tente novamente.');
+      const message = error.response?.data?.message || 'Não foi possível iniciar o pagamento. Verifique a ligação e tente novamente.';
+      setPaymentError(message);
+      Alert.alert('Pagamento não iniciado', message);
     } finally {
       setLoading(false);
     }
@@ -80,7 +90,7 @@ export default function PlansScreen({ navigation }) {
       {plan.featured ? <View style={styles.featuredLabel}><Text style={styles.featuredText}>MAIS ESCOLHIDO</Text></View> : null}
       <View style={styles.planHeader}><View style={[styles.planIcon, plan.featured && styles.featuredIcon]}><Ionicons name={plan.icon} size={22} color={plan.featured ? colors.surface : colors.primaryDark} /></View><View style={styles.planNameWrap}><Text style={styles.planName}>{plan.name}</Text><Text style={styles.planDescription}>{plan.description}</Text></View>{selected === plan.id ? <Ionicons name="checkmark-circle" size={23} color={colors.primary} /> : null}</View>
       <View style={styles.priceRow}><Text style={styles.price}>{plan.price}</Text><Text style={styles.period}>{plan.period}</Text></View>
-      <View style={styles.featureList}>{plan.features.map((feature) => <View key={feature} style={styles.feature}><Ionicons name="checkmark" size={16} color={colors.primary} /><Text style={styles.featureText}>{feature}</Text></View>)}</View>
+      <View style={styles.featureList}><Text style={styles.featureTitle}>Inclui</Text>{plan.features.map((feature) => <View key={feature} style={styles.feature}><View style={styles.featureIcon}><Ionicons name="checkmark" size={14} color={colors.primaryDark} /></View><Text style={styles.featureText}>{feature}</Text></View>)}</View>
       <View style={[styles.chooseButton, plan.featured && styles.featuredButton]}><Text style={[styles.chooseText, plan.featured && styles.featuredButtonText]}>{selected === plan.id ? 'Selecionado' : 'Escolher plano'}</Text></View>
     </TouchableOpacity>)}
     {selected !== 'free' ? <View style={styles.paymentBox}>
@@ -88,7 +98,8 @@ export default function PlansScreen({ navigation }) {
       <Text style={styles.paymentText}>Introduza o seu número M-Pesa. O pedido será protegido pela sua sessão autenticada.</Text>
       <TextInput style={styles.phoneInput} value={phone} onChangeText={setPhone} placeholder="84 123 4567" keyboardType="phone-pad" maxLength={16} editable={!loading} accessibilityLabel="Número M-Pesa" />
       <CustomButton title={loading ? 'A processar...' : 'Continuar com M-Pesa'} icon="card-outline" loading={loading} onPress={payForPlan} />
-      {payment ? <View style={styles.paymentStatus}><Ionicons name="time-outline" size={20} color={colors.primaryDark} /><View style={styles.statusCopy}><Text style={styles.statusTitle}>{payment.status === 'PAID' ? 'Pagamento confirmado' : 'Aguardando confirmação'}</Text><Text style={styles.statusText}>Referência: {payment.reference}</Text><Text style={styles.statusText}>Confirme o pedido no canal oficial do M-Pesa. O FarmaBusca não solicita o seu PIN.</Text></View></View> : null}
+      {paymentError ? <Text style={styles.paymentError}>{paymentError}</Text> : null}
+      {payment ? <View style={styles.paymentStatus}><Ionicons name={payment.isTest ? 'flask-outline' : 'time-outline'} size={20} color={colors.primaryDark} /><View style={styles.statusCopy}><Text style={styles.statusTitle}>{payment.isTest ? 'Pagamento de teste registado' : payment.status === 'PAID' ? 'Pagamento confirmado' : 'Aguardando confirmação'}</Text><Text style={styles.statusText}>Referência: {payment.reference}</Text><Text style={styles.statusText}>{payment.isTest ? 'Nenhuma cobrança foi feita. Este pedido serve apenas para testar o fluxo.' : 'Confirme o pedido no canal oficial do M-Pesa. O FarmaBusca não solicita o seu PIN.'}</Text></View></View> : null}
     </View> : null}
   </ScrollView>;
 }
@@ -113,9 +124,11 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 18 },
   price: { fontSize: 26, fontWeight: '900', color: colors.primaryDark },
   period: { color: colors.textSecondary, fontSize: 13 },
-  featureList: { gap: 9, marginTop: 16 },
-  feature: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  featureText: { color: colors.text, fontSize: 13 },
+  featureList: { marginTop: 18, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border, gap: 10 },
+  featureTitle: { color: colors.textSecondary, fontSize: 12, fontWeight: '800', textTransform: 'uppercase' },
+  feature: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  featureIcon: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
+  featureText: { color: colors.text, fontSize: 14, flex: 1 },
   chooseButton: { alignItems: 'center', marginTop: 18, paddingVertical: 11, borderRadius: radius.md, backgroundColor: colors.primaryLight },
   featuredButton: { backgroundColor: colors.primary },
   chooseText: { color: colors.primaryDark, fontWeight: '800' },
@@ -124,6 +137,7 @@ const styles = StyleSheet.create({
   paymentTitle: { ...typography.heading, color: colors.text },
   paymentText: { ...typography.caption, color: colors.textSecondary, marginTop: 5 },
   phoneInput: { marginTop: 14, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 12, color: colors.text, backgroundColor: colors.background },
+  paymentError: { color: colors.error, fontSize: 13, fontWeight: '700', marginTop: 10 },
   paymentStatus: { flexDirection: 'row', gap: 10, marginTop: 16, padding: 12, borderRadius: radius.md, backgroundColor: colors.primaryLight },
   statusCopy: { flex: 1 },
   statusTitle: { color: colors.primaryDark, fontWeight: '800' },

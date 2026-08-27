@@ -15,6 +15,13 @@ const publicPharmacyInclude = (textLocation) => ({
   include: [publicUserInclude],
 });
 
+const getMedicineSearchTerms = (medicineName) => String(medicineName || '')
+  .replace(/\b\d+(?:[.,]\d+)?\s*(?:mg|g|mcg|µg|ml|l|comprimidos?|cápsulas?|capsulas?)\b/gi, ' ')
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .split(/[^a-z0-9]+/i)
+  .filter((term) => term.length >= 2);
+
 const queryAssistantResults = async (intent, coordinatesInput) => {
   const coordinates = validateCoordinates(coordinatesInput?.latitude, coordinatesInput?.longitude);
   const radiusKm = coordinates ? intent.radiusKm : null;
@@ -28,7 +35,12 @@ const queryAssistantResults = async (intent, coordinatesInput) => {
   }
 
   if (!intent.medicineName) return [];
-  const medicineWhere = { isActive: true, name: { [Op.iLike]: `%${intent.medicineName}%` } };
+  const medicineTerms = getMedicineSearchTerms(intent.medicineName);
+  if (!medicineTerms.length) return [];
+  const medicineWhere = {
+    isActive: true,
+    [Op.and]: medicineTerms.map((term) => ({ name: { [Op.iLike]: `%${term}%` } })),
+  };
   if (intent.onlyAvailable) medicineWhere.stockStatus = { [Op.in]: ['AVAILABLE', 'LOW_STOCK'] };
   if (intent.minimumPrice !== null || intent.maximumPrice !== null) {
     medicineWhere.price = { ...(intent.minimumPrice !== null ? { [Op.gte]: intent.minimumPrice } : {}), ...(intent.maximumPrice !== null ? { [Op.lte]: intent.maximumPrice } : {}) };
@@ -43,4 +55,4 @@ const queryAssistantResults = async (intent, coordinatesInput) => {
   }));
 };
 
-module.exports = { queryAssistantResults };
+module.exports = { getMedicineSearchTerms, queryAssistantResults };

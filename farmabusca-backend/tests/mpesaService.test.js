@@ -73,3 +73,32 @@ test('pedido C2B envia 25 MT e nunca envia PIN ao M-Pesa', async () => {
     });
   }
 });
+
+test('aceita MPESA_BASE_URL sem protocolo', async () => {
+  const previousFetch = global.fetch;
+  const keys = ['PAYMENT_PROVIDER_MODE', 'MPESA_API_KEY', 'MPESA_PUBLIC_KEY', 'MPESA_SERVICE_PROVIDER_CODE', 'MPESA_BASE_URL'];
+  const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  Object.assign(process.env, {
+    PAYMENT_PROVIDER_MODE: 'mpesa',
+    MPESA_API_KEY: 'test-api-key',
+    MPESA_PUBLIC_KEY: 'test-public-key',
+    MPESA_SERVICE_PROVIDER_CODE: '123456',
+    MPESA_BASE_URL: 'sandbox.example',
+  });
+  let sentUrl;
+  global.fetch = async (url) => {
+    sentUrl = url;
+    return { ok: true, json: async () => ({ output_ResponseCode: 'INS-0' }) };
+  };
+
+  try {
+    await requestMpesaPayment({ phone: '258841234567', reference: 'FBR-TESTE' });
+    assert.equal(sentUrl, 'https://sandbox.example/ipg/v1x/c2bPayment/singleStage/');
+  } finally {
+    global.fetch = previousFetch;
+    keys.forEach((key) => {
+      if (previous[key] === undefined) delete process.env[key];
+      else process.env[key] = previous[key];
+    });
+  }
+});

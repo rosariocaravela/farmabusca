@@ -10,6 +10,7 @@ const publicPayment = (payment) => ({
   amount: Number(payment.amount),
   reference: payment.reference,
   status: payment.status,
+  isTest: String(payment.providerTransactionId || '').startsWith('MOCK-'),
   createdAt: payment.createdAt,
   updatedAt: payment.updatedAt,
 });

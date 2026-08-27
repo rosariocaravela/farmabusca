@@ -33,20 +33,20 @@ const pharmacyImages = {
 };
 
 const medicines = [
-  ['Paracetamol', 'Analgésicos', 70, 42, 'AVAILABLE'],
-  ['Paracetamol', 'Analgésicos', 75, 18, 'AVAILABLE'],
-  ['Ibuprofeno', 'Analgésicos', 125, 7, 'AVAILABLE'],
-  ['Amoxicilina', 'Antibióticos', 275, 14, 'AVAILABLE'],
-  ['Loratadina', 'Antialérgicos', 95, 25, 'AVAILABLE'],
-  ['Vitamina C', 'Vitaminas', 145, 30, 'AVAILABLE'],
-  ['Azitromicina', 'Antibióticos', 350, 5, 'AVAILABLE'],
-  ['Cetirizina', 'Antialérgicos', 105, 0, 'OUT_OF_STOCK'],
-  ['Amoxicilina', 'Antibióticos', 290, 9, 'AVAILABLE'],
-  ['Complexo B', 'Vitaminas', 210, 12, 'AVAILABLE'],
-  ['Paracetamol', 'Analgésicos', 68, 26, 'AVAILABLE', 'mavota'],
-  ['Ibuprofeno', 'Analgésicos', 120, 11, 'AVAILABLE', 'mavota'],
-  ['Amoxicilina', 'Antibióticos', 285, 8, 'AVAILABLE', 'matola'],
-  ['Loratadina', 'Antialérgicos', 90, 0, 'OUT_OF_STOCK', 'matola'],
+  ['Paracetamol', 'Analgésicos', 35, 42, 'AVAILABLE'],
+  ['Paracetamol', 'Analgésicos', 40, 18, 'AVAILABLE'],
+  ['Ibuprofeno', 'Analgésicos', 55, 7, 'AVAILABLE'],
+  ['Omeprazol', 'Antiácidos', 60, 14, 'AVAILABLE'],
+  ['Loratadina', 'Antialérgicos', 45, 25, 'AVAILABLE'],
+  ['Vitamina C', 'Vitaminas', 50, 30, 'AVAILABLE'],
+  ['Soro de Reidratação', 'Hidratação', 25, 5, 'AVAILABLE'],
+  ['Cetirizina', 'Antialérgicos', 45, 0, 'OUT_OF_STOCK'],
+  ['Amoxicilina', 'Antibióticos', 80, 9, 'AVAILABLE'],
+  ['Complexo B', 'Vitaminas', 70, 12, 'AVAILABLE'],
+  ['Paracetamol', 'Analgésicos', 38, 26, 'AVAILABLE', 'mavota'],
+  ['Ibuprofeno', 'Analgésicos', 58, 11, 'AVAILABLE', 'mavota'],
+  ['Omeprazol', 'Antiácidos', 65, 8, 'AVAILABLE', 'matola'],
+  ['Loratadina', 'Antialérgicos', 40, 0, 'OUT_OF_STOCK', 'matola'],
 ];
 
 async function upsertUser(definition) {
@@ -73,8 +73,17 @@ async function run() {
     pharmacyByAccount[account] = pharmacy;
   }
   const categories = {};
-  for (const name of ['Analgésicos', 'Antibióticos', 'Vitaminas', 'Antialérgicos']) {
+  for (const name of ['Analgésicos', 'Antibióticos', 'Vitaminas', 'Antialérgicos', 'Antiácidos', 'Hidratação']) {
     [categories[name]] = await Category.findOrCreate({ where: { name }, defaults: { name, description: `Categoria fictícia: ${name}` } });
+  }
+  const legacyMigrations = [
+    ['approved', 'Azitromicina', 'Soro de Reidratação', 'Hidratação', 25],
+    ['second', 'Amoxicilina', 'Omeprazol', 'Antiácidos', 60],
+    ['matola', 'Amoxicilina', 'Omeprazol', 'Antiácidos', 65],
+  ];
+  for (const [pharmacyAccount, oldName, newName, category, price] of legacyMigrations) {
+    const legacyMedicine = await Medicine.findOne({ where: { pharmacyId: pharmacyByAccount[pharmacyAccount].id, name: oldName } });
+    if (legacyMedicine) await legacyMedicine.update({ name: newName, categoryId: categories[category].id, price });
   }
   for (let index = 0; index < medicines.length; index += 1) {
     const [name, category, price, quantity, stockStatus, pharmacyAccount] = medicines[index];

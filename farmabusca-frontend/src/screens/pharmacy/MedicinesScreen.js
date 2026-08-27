@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MedicineCard from '../../components/MedicineCard';
 import SearchBar from '../../components/SearchBar';
-import { deleteMedicine, getMyPharmacyMedicines } from '../../services/api';
+import { getMyPharmacyMedicines } from '../../services/api';
 
 export default function MedicinesScreen({ navigation }) {
   const [medicines, setMedicines] = useState([]);
@@ -44,18 +44,6 @@ export default function MedicinesScreen({ navigation }) {
   }, []);
 
   const handlePress = (item) => navigation.navigate('EditMedicine', { id: item.id });
-  const handleDelete = (item) => Alert.alert('Desactivar medicamento?', `${item.name} deixará de aparecer na pesquisa dos pacientes.`, [
-    { text: 'Cancelar', style: 'cancel' },
-    { text: 'Desactivar', style: 'destructive', onPress: async () => {
-      try {
-        await deleteMedicine(item.id);
-        setMedicines((current) => current.filter((medicine) => medicine.id !== item.id));
-        Alert.alert('Sucesso', 'Medicamento desactivado.');
-      } catch (requestError) {
-        Alert.alert('Erro', requestError.response?.data?.message || 'Não foi possível desactivar o medicamento.');
-      }
-    } },
-  ]);
 
   const visibleMedicines = medicines.filter((item) => `${item.name} ${item.stock || ''}`.toLowerCase().includes(search.trim().toLowerCase()));
 
@@ -93,7 +81,9 @@ export default function MedicinesScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       ) : (
-        visibleMedicines.map((item) => <View key={item.id} style={styles.medicineWrap}><MedicineCard item={item} onPress={() => handlePress(item)} /><View style={styles.actions}><TouchableOpacity style={styles.editAction} onPress={() => handlePress(item)}><Text style={styles.editText}>Editar</Text></TouchableOpacity><TouchableOpacity style={styles.deleteAction} onPress={() => handleDelete(item)}><Text style={styles.deleteText}>Desactivar</Text></TouchableOpacity></View></View>)
+        <View style={styles.medicineGrid}>
+          {visibleMedicines.map((item) => <View key={item.id} style={styles.medicineWrap}><MedicineCard item={item} cardStyle={styles.medicineCard} detailsLabel="Editar" onPress={() => handlePress(item)} /></View>)}
+        </View>
       )}
     </ScrollView>
   );
@@ -110,9 +100,10 @@ const styles = StyleSheet.create({
   retryButton: { marginTop: 16, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#DC2626', borderRadius: 8 },
   retryText: { color: '#FFFFFF', fontWeight: '600' },
   emptyBox: { backgroundColor: '#F1F5F9', borderRadius: 12, padding: 24, alignItems: 'center' },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: '#334155', marginTop: 12 },
+  medicineGrid: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  medicineWrap: { width: '48%', maxWidth: '48%', flexBasis: '48%', flexGrow: 0, flexShrink: 0, marginTop: 14 },
+  medicineCard: { width: '100%', marginBottom: 0 },
   emptyText: { fontSize: 14, color: '#64748B', marginTop: 8, textAlign: 'center' },
   addButton: { marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#2F9E5D', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
   addButtonText: { color: '#FFFFFF', fontWeight: '600' },
-  medicineWrap: { marginTop: 14 }, actions: { flexDirection: 'row', gap: 10, marginTop: 8 }, editAction: { flex: 1, alignItems: 'center', padding: 10, borderRadius: 10, backgroundColor: '#DCFCE7' }, editText: { color: '#166534', fontWeight: '800' }, deleteAction: { flex: 1, alignItems: 'center', padding: 10, borderRadius: 10, backgroundColor: '#FEE2E2' }, deleteText: { color: '#B91C1C', fontWeight: '800' },
 });

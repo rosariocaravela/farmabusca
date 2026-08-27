@@ -11,7 +11,7 @@ const meta = {
   OUT_OF_STOCK: { label: 'Indisponível', color: colors.error, bg: colors.errorLight, icon: 'close-circle' },
 };
 
-export default function MedicineCard({ item, onPress, onFavorite, onMap, favorite = false, cardStyle }) {
+export default function MedicineCard({ item, onPress, onFavorite, onMap, favorite = false, cardStyle, detailsLabel = 'Ver opções' }) {
   const inferred = String(item.stock || '').toLowerCase().includes('baixo') ? 'LOW_STOCK' : String(item.stock || '').toLowerCase().includes('indis') ? 'OUT_OF_STOCK' : 'AVAILABLE';
   const state = meta[item.stockStatus || item.status || inferred] || meta.AVAILABLE;
   const pharmacy = item.Pharmacy?.name || item.pharmacy || 'Farmácia';
@@ -20,7 +20,7 @@ export default function MedicineCard({ item, onPress, onFavorite, onMap, favorit
   return <TouchableOpacity style={[styles.card, cardStyle]} onPress={onPress} activeOpacity={0.82} accessibilityRole="button" accessibilityLabel={`${item.name}, ${state.label}`}>
     <View style={styles.imageWrap}><ResilientImage uri={item.image || item.imageUrl} fallback={placeholder} style={styles.image} /><View style={[styles.badge, { backgroundColor: state.bg }]}><Ionicons name={state.icon} size={13} color={state.color} /><Text style={[styles.badgeText, { color: state.color }]}>{state.label}</Text></View>{onFavorite ? <TouchableOpacity style={styles.favorite} onPress={(event) => { event.stopPropagation?.(); onFavorite(); }} hitSlop={10} accessibilityLabel={favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}><Ionicons name={favorite ? 'heart' : 'heart-outline'} size={24} color={favorite ? colors.error : colors.textSecondary} /></TouchableOpacity> : null}</View>
     <View style={styles.body}><View style={styles.titleRow}><Text numberOfLines={1} style={styles.title}>{item.name}</Text>{distance ? <Text style={styles.distance}>{distance}</Text> : null}</View><Text numberOfLines={1} style={styles.pharmacy}>{pharmacy}{pharmacyLocation ? ` · ${pharmacyLocation}` : ''}</Text>{state === meta.OUT_OF_STOCK ? <Text style={styles.unavailable}>Este medicamento está esgotado nesta farmácia.</Text> : null}</View>
-    <View style={styles.footer}><Text style={styles.price}>{item.price != null ? `${Number(item.price).toLocaleString('pt-MZ')} MT` : 'Preço sob consulta'}</Text><View style={styles.actions}>{onMap && item.Pharmacy?.latitude != null ? <TouchableOpacity style={styles.mapButton} onPress={(event) => { event.stopPropagation?.(); onMap(item.Pharmacy); }}><Ionicons name="navigate-outline" size={16} color={colors.primaryDark} /><Text style={styles.mapText}>Como chegar</Text></TouchableOpacity> : null}{onPress ? <View style={styles.details}><Text style={styles.detailsText}>Ver opções</Text><Ionicons name="arrow-forward" size={16} color={colors.primary} /></View> : null}</View></View>
+    <View style={styles.footer}><Text style={styles.price}>{item.price != null ? `${Number(item.price).toLocaleString('pt-MZ')} MT` : 'Preço sob consulta'}</Text><View style={styles.actions}>{onMap && item.Pharmacy?.latitude != null ? <TouchableOpacity style={styles.mapButton} onPress={(event) => { event.stopPropagation?.(); onMap(item.Pharmacy); }}><Ionicons name="navigate-outline" size={16} color={colors.primaryDark} /><Text style={styles.mapText}>Como chegar</Text></TouchableOpacity> : null}{onPress ? <View style={styles.details}><Text style={styles.detailsText}>{detailsLabel}</Text><Ionicons name="arrow-forward" size={16} color={colors.primary} /></View> : null}</View></View>
   </TouchableOpacity>;
 }
 

@@ -13,10 +13,18 @@ const requestMpesaPayment = async ({ phone, reference, amount = RESERVATION_FEE_
   const apiKey = process.env.MPESA_API_KEY;
   const publicKey = process.env.MPESA_PUBLIC_KEY;
   const serviceProviderCode = process.env.MPESA_SERVICE_PROVIDER_CODE;
-  const baseUrl = process.env.MPESA_BASE_URL;
-  if (!apiKey || !publicKey || !serviceProviderCode || !baseUrl) throw new Error('Credenciais M-Pesa não configuradas no servidor');
+  const configuredBaseUrl = String(process.env.MPESA_BASE_URL || '').trim();
+  if (!apiKey || !publicKey || !serviceProviderCode || !configuredBaseUrl) throw new Error('Credenciais M-Pesa não configuradas no servidor');
 
-  const response = await fetch(`${baseUrl.replace(/\/$/, '')}/ipg/v1x/c2bPayment/singleStage/`, {
+  const baseUrl = /^https?:\/\//i.test(configuredBaseUrl) ? configuredBaseUrl : `https://${configuredBaseUrl}`;
+  let endpoint;
+  try {
+    endpoint = new URL('/ipg/v1x/c2bPayment/singleStage/', `${baseUrl.replace(/\/$/, '')}/`).toString();
+  } catch (error) {
+    throw new Error('MPESA_BASE_URL inválida. Use uma URL como https://api.vm.co.mz:18352');
+  }
+
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,

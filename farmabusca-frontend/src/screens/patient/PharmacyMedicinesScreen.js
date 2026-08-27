@@ -64,10 +64,12 @@ export default function PharmacyMedicinesScreen({ navigation, route }) {
     <Header title={pharmacy.name || 'Farmácia'} subtitle="Medicamentos disponíveis nesta farmácia" onBack={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} />
     {loading ? <View style={styles.pad}><LoadingSkeleton rows={3} /></View> : error ? <ErrorState message={error} onRetry={load} /> : <FlatList
       data={items}
+      numColumns={2}
+      columnWrapperStyle={styles.gridRow}
       keyExtractor={(item) => String(item.id)}
       contentContainerStyle={styles.list}
       ListHeaderComponent={pharmacyDetails}
-      renderItem={({ item }) => <MedicineCard item={item} onPress={() => navigation.navigate('MedicineDetails', { item })} />}
+      renderItem={({ item }) => <MedicineCard item={item} cardStyle={styles.gridCard} onPress={() => navigation.navigate('MedicineDetails', { item })} />}
       ListEmptyComponent={<EmptyState title="Nenhum medicamento disponível" message="Esta farmácia ainda não publicou medicamentos disponíveis." />}
     />}
   </View>;
@@ -76,6 +78,8 @@ export default function PharmacyMedicinesScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   list: { padding: spacing.xl, paddingTop: spacing.sm, paddingBottom: 40 },
+  gridRow: { justifyContent: 'space-between', gap: 12 },
+  gridCard: { width: '48%' },
   pad: { padding: spacing.xl },
   details: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16, marginBottom: 18, borderWidth: 1, borderColor: colors.border }, detailsHeader: { flexDirection: 'row', alignItems: 'flex-start' }, detailsText: { flex: 1 }, name: { ...typography.heading, color: colors.text, fontSize: 20 }, location: { ...typography.caption, color: colors.textSecondary, marginTop: 5 }, favorite: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primaryLight }, description: { ...typography.body, color: colors.textSecondary, marginTop: 12 }, meta: { ...typography.caption, color: colors.text, marginTop: 8 }, actions: { flexDirection: 'row', gap: 10, marginTop: 14 }, action: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 11, borderRadius: radius.md, backgroundColor: colors.primaryLight }, actionText: { color: colors.primaryDark, fontWeight: '800' }, sectionTitle: { ...typography.heading, color: colors.text, marginTop: 20 },
 });
