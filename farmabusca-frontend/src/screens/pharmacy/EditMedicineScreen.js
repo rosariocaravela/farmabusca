@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
-import { getMedicineById, updateMedicine } from '../../services/api';
+import { getMyPharmacyMedicineById, updateMedicine } from '../../services/api';
 
 const defaultCategories = ['Analgésicos', 'Antibióticos', 'Vitaminas', 'Anti-inflamatórios', 'Gripes e Resfriados', 'Digestivos', 'Antialérgicos', 'Dermatológicos', 'Vitaminas e Suplementos', 'Medicamentos Genéricos', 'Outro'];
 
@@ -20,7 +20,6 @@ export default function EditMedicineScreen() {
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
   const [category, setCategory] = useState('');
-  const [description, setDescription] = useState('');
   const [showCustomCategory, setShowCustomCategory] = useState(false);
   const [stockStatus, setStockStatus] = useState('AVAILABLE');
   const [imageUri, setImageUri] = useState(null);
@@ -32,7 +31,7 @@ export default function EditMedicineScreen() {
       if (!id) return;
       setLoading(true);
       try {
-        const response = await getMedicineById(id);
+        const response = await getMyPharmacyMedicineById(id);
         const data = response?.data || response;
         if (!mounted) return;
         setMedicine(data);
@@ -40,7 +39,6 @@ export default function EditMedicineScreen() {
         setPrice(data.price != null ? String(data.price) : '');
         setStock(data.quantity != null ? String(data.quantity) : '');
         setCategory(data.Category?.name || data.category || '');
-        setDescription(data.description || '');
         setStockStatus(data.stockStatus || 'AVAILABLE');
         setImageUri(data.image || null);
         setImageChanged(false);
@@ -103,18 +101,18 @@ export default function EditMedicineScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) return Alert.alert('Erro', 'Nome é obrigatório.');
-    if (!price.trim() || isNaN(Number(price))) return Alert.alert('Erro', 'Preço inválido.');
-    if (!stock.trim() || isNaN(Number(stock))) return Alert.alert('Erro', 'Quantidade inválida.');
+    const normalizedPrice = price.trim().replace(',', '.');
+    if (!normalizedPrice || !Number.isFinite(Number(normalizedPrice)) || Number(normalizedPrice) < 0) return Alert.alert('Erro', 'Preço inválido.');
+    if (!/^\d+$/.test(stock.trim())) return Alert.alert('Erro', 'Quantidade deve ser um número inteiro válido.');
 
     setLoading(true);
     try {
       const form = new FormData();
       form.append('name', name.trim());
       form.append('category', category.trim());
-      form.append('price', Number(price));
+      form.append('price', normalizedPrice);
       form.append('stock', Number(stock));
       form.append('stockStatus', stockStatus);
-      form.append('description', description.trim() || '');
 
       if (imageChanged) {
         if (imageUri) {
@@ -185,7 +183,7 @@ export default function EditMedicineScreen() {
         <View style={[styles.statusIndicator, medicine?.stockStatus === 'AVAILABLE' ? styles.statusAvailable : styles.statusUnavailable]} />
         <View style={{ flex: 1 }}>
           <Text style={styles.statusLabel}>Estado</Text>
-          <Text style={styles.statusValue}>{medicine?.stockStatus === 'AVAILABLE' ? '🟢 Disponível' : medicine?.stockStatus === 'LOW_STOCK' ? '🟡 Stock baixo' : '🔴 Indisponível'}</Text>
+          <Text style={styles.statusValue}>{medicine?.stockStatus === 'OUT_OF_STOCK' ? '🔴 Indisponível' : '🟢 Disponível'}</Text>
         </View>
       </View>
 
@@ -242,7 +240,6 @@ export default function EditMedicineScreen() {
       
       <CustomInput label="Preço" placeholder="Preço" keyboardType="numeric" value={price} onChangeText={setPrice} />
       <CustomInput label="Quantidade" placeholder="Quantidade" keyboardType="numeric" value={stock} onChangeText={setStock} />
-      <CustomInput label="Descrição" placeholder="Descrição" value={description} onChangeText={setDescription} />
       <CustomButton title="Guardar alterações" onPress={handleSave} loading={loading} disabled={loading} />
     </ScrollView>
   );

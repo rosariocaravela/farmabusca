@@ -1,7 +1,10 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'farmabusca-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET deve ser configurado nas variáveis de ambiente');
+}
 
 module.exports = async (req, res, next) => {
   try {
@@ -16,6 +19,10 @@ module.exports = async (req, res, next) => {
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'Utilizador não encontrado' });
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({ success: false, message: 'Esta conta encontra-se suspensa' });
     }
 
     req.user = user;

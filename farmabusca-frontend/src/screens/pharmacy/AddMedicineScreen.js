@@ -33,7 +33,6 @@ export default function AddMedicineScreen({ navigation }) {
     defaultValues: {
       name: '',
       category: '',
-      description: '',
       quantity: '',
       price: '',
     },
@@ -108,12 +107,10 @@ export default function AddMedicineScreen({ navigation }) {
       const form = new FormData();
       form.append('name', data.name.trim());
       form.append('category', data.category);
-      form.append('description', data.description?.trim() || '');
-      form.append('quantity', String(Number(data.quantity) || 0));
-      form.append('price', data.price?.trim() ? String(data.price.trim()) : '');
+      form.append('quantity', String(Number(data.quantity)));
+      form.append('price', data.price.trim().replace(',', '.'));
       form.append('manufacturer', data.manufacturer?.trim() || '');
       form.append('activeIngredient', data.activeIngredient?.trim() || '');
-      form.append('dosage', data.dosage?.trim() || '');
 
       const imageField = await buildImageField();
       if (imageField) {
@@ -214,19 +211,6 @@ export default function AddMedicineScreen({ navigation }) {
         )}
         {errors.category && <Text style={styles.errorText}>{errors.category.message || 'Categoria é obrigatória.'}</Text>}
 
-        <Controller
-          control={control}
-          name="description"
-          render={({ field: { onChange, value } }) => (
-            <CustomInput
-              label="Descrição"
-              placeholder="Informações sobre o medicamento."
-              value={value}
-              onChangeText={onChange}
-              keyboardType="default"
-            />
-          )}
-        />
       </View>
 
       <View style={styles.card}>
@@ -234,7 +218,7 @@ export default function AddMedicineScreen({ navigation }) {
         <Controller
           control={control}
           name="quantity"
-          rules={{ required: 'Quantidade é obrigatória.' }}
+          rules={{ required: 'Quantidade é obrigatória.', pattern: { value: /^\d+$/, message: 'Informe uma quantidade inteira válida.' } }}
           render={({ field: { onChange, value } }) => (
             <CustomInput label="Quantidade disponível" placeholder="50 unidades" value={value} onChangeText={onChange} keyboardType="numeric" />
           )}
@@ -243,14 +227,16 @@ export default function AddMedicineScreen({ navigation }) {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Preço (opcional)</Text>
+        <Text style={styles.cardTitle}>Preço</Text>
         <Controller
           control={control}
           name="price"
+          rules={{ required: 'Preço é obrigatório.', pattern: { value: /^\d+(?:[.,]\d{1,2})?$/, message: 'Informe um preço válido.' } }}
           render={({ field: { onChange, value } }) => (
             <CustomInput label="Preço" placeholder="50 MT" value={value} onChangeText={onChange} keyboardType="numeric" />
           )}
         />
+        {errors.price && <Text style={styles.errorText}>{errors.price.message}</Text>}
         <Text style={styles.helpText}>O preço pode ser mostrado ao cliente ou apenas usado como referência da farmácia.</Text>
       </View>
 

@@ -36,6 +36,10 @@ const Pharmacy = sequelize.define('Pharmacy', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  neighborhood: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   phone: {
     type: DataTypes.STRING,
     allowNull: true,
@@ -68,6 +72,16 @@ const Pharmacy = sequelize.define('Pharmacy', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  latitude: {
+    type: DataTypes.DOUBLE,
+    allowNull: true,
+    validate: { min: -90, max: 90 },
+  },
+  longitude: {
+    type: DataTypes.DOUBLE,
+    allowNull: true,
+    validate: { min: -180, max: 180 },
+  },
   responsibleName: {
     type: DataTypes.STRING,
     allowNull: true,
@@ -96,6 +110,11 @@ const Pharmacy = sequelize.define('Pharmacy', {
   suspended: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
+  },
+  reviewStatus: {
+    type: DataTypes.ENUM('PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'),
+    allowNull: false,
+    defaultValue: 'PENDING',
   },
 }, {
   tableName: 'pharmacies',

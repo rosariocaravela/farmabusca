@@ -4,9 +4,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import TabIcon from '../components/TabIcon';
 import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
 import AdminPharmaciesScreen from '../screens/admin/AdminPharmaciesScreen';
-import AdminMedicinesScreen from '../screens/admin/AdminMedicinesScreen';
-import AdminMapScreen from '../screens/admin/AdminMapScreen';
 import AdminProfileScreen from '../screens/admin/AdminProfileScreen';
+import AdminUsersScreen from '../screens/admin/AdminUsersScreen';
 import { colors } from '../theme';
 
 const Tab = createBottomTabNavigator();
@@ -21,8 +20,7 @@ function AdminTabs() {
           let iconName;
           if (route.name === 'Dashboard') iconName = focused ? 'home' : 'home-outline';
           else if (route.name === 'Farmácias') iconName = focused ? 'business' : 'business-outline';
-          else if (route.name === 'Medicamentos') iconName = focused ? 'medkit' : 'medkit-outline';
-          else if (route.name === 'Mapa') iconName = focused ? 'map' : 'map-outline';
+          else if (route.name === 'Utilizadores') iconName = focused ? 'people' : 'people-outline';
           else if (route.name === 'Perfil') iconName = focused ? 'person' : 'person-outline';
           return <TabIcon name={iconName} focused={focused} color={color} />;
         },
@@ -34,8 +32,7 @@ function AdminTabs() {
     >
       <Tab.Screen name="Dashboard" component={AdminDashboardScreen} options={{ title: 'Visão geral' }} />
       <Tab.Screen name="Farmácias" component={AdminPharmaciesScreen} />
-      <Tab.Screen name="Medicamentos" component={AdminMedicinesScreen} />
-      <Tab.Screen name="Mapa" component={AdminMapScreen} />
+      <Tab.Screen name="Utilizadores" component={AdminUsersScreen} />
       <Tab.Screen name="Perfil" component={AdminProfileScreen} />
     </Tab.Navigator>
   );

@@ -6,8 +6,8 @@ import { colors, radius } from '../theme';
 export default function CustomButton({ title, onPress, loading = false, variant = 'primary', disabled = false, style, icon }) {
   const scale = useRef(new Animated.Value(1)).current;
   const inactive = disabled || loading;
-  const backgroundColor = inactive ? colors.disabled : variant === 'secondary' ? colors.primaryLight : variant === 'danger' ? colors.error : colors.primary;
-  const textColor = variant === 'secondary' ? colors.primaryDark : colors.surface;
+  const backgroundColor = inactive ? colors.disabled : variant === 'secondary' ? colors.primaryLight : variant === 'dangerSecondary' ? '#FFF1F2' : variant === 'danger' ? colors.error : colors.primary;
+  const textColor = variant === 'secondary' ? colors.primaryDark : variant === 'dangerSecondary' ? '#B91C1C' : colors.surface;
 
   const handleIn = () => {
     if (!disabled) Animated.spring(scale, { toValue: 0.98, useNativeDriver: true }).start();

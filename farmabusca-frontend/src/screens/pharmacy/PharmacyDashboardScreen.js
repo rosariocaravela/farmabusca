@@ -147,12 +147,12 @@ export default function PharmacyDashboardScreen({ navigation }) {
       ) : (
         <>
           <View style={styles.summaryRow}>
-            <DashboardCard title="Total de medicamentos" value={`${total} medicamentos`} color="#F5FAFF" />
-            <DashboardCard title="Disponíveis" value={`${available} disponíveis`} color="#E8F7EE" />
+            <DashboardCard title="Total de medicamentos" value={total} color="#F5FAFF" />
+            <DashboardCard title="Disponíveis" value={available} color="#E8F7EE" />
           </View>
           <View style={styles.summaryRow}>
-            <DashboardCard title="Esgotados" value={`${outOfStock} esgotados`} color="#FEF3F2" />
-            <DashboardCard title="Categorias" value={`${categories} categorias`} color="#F5FEF9" />
+            <DashboardCard title="Esgotados" value={outOfStock} color="#FEF3F2" />
+            <DashboardCard title="Categorias" value={categories} color="#F5FEF9" />
           </View>
           <View style={styles.viewsCard}>
             <View style={styles.viewsRow}>
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 22,
   },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 16 },
   viewsCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 22,

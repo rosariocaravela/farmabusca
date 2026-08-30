@@ -21,10 +21,6 @@ const Medicine = sequelize.define('Medicine', {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
   price: {
     type: DataTypes.FLOAT,
     allowNull: false,
@@ -43,6 +39,11 @@ const Medicine = sequelize.define('Medicine', {
   image: {
     type: DataTypes.STRING,
     allowNull: true,
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
   },
 }, {
   tableName: 'medicines',

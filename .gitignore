@@ -26,3 +26,4 @@ Thumbs.db
 coverage/
 dist/
 build/
+demo-credentials.local.txt

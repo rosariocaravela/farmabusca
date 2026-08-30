@@ -17,7 +17,7 @@ const connectDb = async () => {
     await sequelize.authenticate();
     console.log('Database connected successfully.');
 
-    const shouldAlter = process.env.NODE_ENV !== 'production' && process.env.DB_SYNC_ALTER !== 'false';
+    const shouldAlter = process.env.DB_SYNC_ALTER === 'true';
     await sequelize.sync({ alter: shouldAlter, force: false });
 
     const { Category, User } = require('../models');
@@ -50,7 +50,7 @@ const connectDb = async () => {
       }
     }
   } catch (error) {
-    console.warn('Database unavailable, continuing without syncing:', error.message);
+    throw error;
   }
 };
 

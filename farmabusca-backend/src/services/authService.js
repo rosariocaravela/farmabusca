@@ -3,8 +3,16 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 const { User } = require('../models');
+const {
+  normalizeEmail,
+  normalizeSelfRegisterRole,
+  sanitizeUser,
+} = require('../utils/authPolicy');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'farmabusca-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET deve ser configurado nas variáveis de ambiente');
+}
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 const hashPassword = async (password) => bcrypt.hash(password, 10);
@@ -13,18 +21,10 @@ const comparePassword = async (password, hashedPassword) => bcrypt.compare(passw
 
 const signToken = (user) => jwt.sign({ id: user.id, role: String(user.role || 'PATIENT').toUpperCase() }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
-const sanitizeUser = (user) => {
-  const data = user.toJSON ? user.toJSON() : { ...user };
-  delete data.password;
-  delete data.resetPasswordToken;
-  delete data.resetPasswordExpires;
-  return data;
-};
-
 const registerUser = async ({ name, email, phone, password, role = 'PATIENT' }) => {
-  const normalizedRole = String(role || 'PATIENT').toUpperCase();
-
-  const existingUser = await User.findOne({ where: { email } });
+  const normalizedRole = normalizeSelfRegisterRole(role);
+  const normalizedEmail = normalizeEmail(email);
+  const existingUser = await User.findOne({ where: { email: normalizedEmail } });
   if (existingUser) {
     const error = new Error('Email já existe');
     error.statusCode = 400;
@@ -32,15 +32,28 @@ const registerUser = async ({ name, email, phone, password, role = 'PATIENT' }) 
   }
 
   const hashedPassword = await hashPassword(password);
-  const user = await User.create({ name, email, phone, password: hashedPassword, role: normalizedRole });
+  const user = await User.create({
+    name: String(name || '').trim(),
+    email: normalizedEmail,
+    phone: String(phone || '').trim(),
+    password: hashedPassword,
+    role: normalizedRole,
+  });
   return { user: sanitizeUser(user), token: signToken(user) };
 };
 
 const loginUser = async ({ email, password }) => {
-  const user = await User.findOne({ where: { email } });
+  const normalizedEmail = normalizeEmail(email);
+  const user = await User.findOne({ where: { email: normalizedEmail } });
   if (!user) {
     const error = new Error('Credenciais inválidas');
     error.statusCode = 401;
+    throw error;
+  }
+
+  if (user.isActive === false) {
+    const error = new Error('Esta conta encontra-se suspensa. Contacte a administração do FarmaBusca.');
+    error.statusCode = 403;
     throw error;
   }
 
@@ -99,4 +112,5 @@ module.exports = {
   forgotPasswordUser,
   resetPasswordUser,
   hashPassword,
+  sanitizeUser,
 };

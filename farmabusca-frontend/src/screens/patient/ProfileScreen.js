@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../../context/AuthContext';
 import { createPharmacyProfile, getMyPharmacy, getProfile, updateUserProfile, updatePharmacyProfile } from '../../services/api';
 import CustomInput from '../../components/CustomInput';
@@ -44,6 +45,7 @@ const cityOptionsByProvince = {
 };
 
 export default function ProfileScreen({ navigation }) {
+  const tabBarHeight = useBottomTabBarHeight();
   const { user, logout, updateSessionUser } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [description, setDescription] = useState('');
@@ -55,6 +57,10 @@ export default function ProfileScreen({ navigation }) {
   const [city, setCity] = useState('');
   const [district, setDistrict] = useState('');
   const [address, setAddress] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [locationReference, setLocationReference] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   const [open24h, setOpen24h] = useState(false);
   const [openingTime, setOpeningTime] = useState('08:00');
   const [closingTime, setClosingTime] = useState('18:00');
@@ -70,6 +76,7 @@ export default function ProfileScreen({ navigation }) {
   const [provincePickerOpen, setProvincePickerOpen] = useState(false);
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
+  const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
 
   const cityOptions = cityOptionsByProvince[province] || [];
 
@@ -136,14 +143,18 @@ export default function ProfileScreen({ navigation }) {
       const pharmacy = await getMyPharmacy();
       if (pharmacy) {
         setPharmacyId(pharmacy.id);
-        setName(pharmacy.name || user?.name || 'Farmácia Central');
-        setDescription(pharmacy.description || 'Especializada em medicamentos e atendimento local.');
-        setContact(pharmacy.phone || user?.phone || '84 000 000');
+        setName(pharmacy.name || user?.name || '');
+        setDescription(pharmacy.description || '');
+        setContact(pharmacy.phone || user?.phone || '');
         setWhatsapp(pharmacy.whatsapp || user?.phone || '');
-        setProvince(pharmacy.province || 'Maputo');
-        setCity(pharmacy.city || 'Maputo Cidade');
+        setProvince(pharmacy.province || '');
+        setCity(pharmacy.city || '');
         setDistrict(pharmacy.district || '');
-        setAddress(pharmacy.address || 'Av. 25 de Setembro, 123');
+        setNeighborhood(pharmacy.neighborhood || '');
+        setAddress(pharmacy.address || '');
+        setLocationReference(pharmacy.location || '');
+        setLatitude(pharmacy.latitude != null ? String(pharmacy.latitude) : '');
+        setLongitude(pharmacy.longitude != null ? String(pharmacy.longitude) : '');
         const savedHours = pharmacy.openingHours || '08:00 - 18:00';
         setOpen24h(savedHours === '24h');
         if (savedHours !== '24h') {
@@ -204,6 +215,12 @@ export default function ProfileScreen({ navigation }) {
   }, [user]);
 
   const saveProfile = async () => {
+    if (!name.trim() || !address.trim() || !contact.trim() || !province.trim()) {
+      return Alert.alert('Dados obrigatórios', 'Preencha nome, contacto, província e endereço da farmácia.');
+    }
+    if (!open24h && (!/^\d{2}:\d{2}$/.test(openingTime.trim()) || !/^\d{2}:\d{2}$/.test(closingTime.trim()))) {
+      return Alert.alert('Horário inválido', 'Use o formato HH:MM para abertura e encerramento.');
+    }
     setSaving(true);
     setProfileMessage('');
     try {
@@ -216,6 +233,12 @@ export default function ProfileScreen({ navigation }) {
       payload.append('city', city.trim());
       payload.append('province', province.trim());
       payload.append('district', district.trim());
+      payload.append('neighborhood', neighborhood.trim());
+      payload.append('location', locationReference.trim());
+      if (latitude.trim() && longitude.trim()) {
+        payload.append('latitude', latitude.trim());
+        payload.append('longitude', longitude.trim());
+      }
       payload.append('openingHours', open24h ? '24h' : `${openingTime.trim()} - ${closingTime.trim()}`);
 
       if (logoChanged && logo) {
@@ -305,12 +328,15 @@ export default function ProfileScreen({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView style={styles.page} contentContainerStyle={[styles.container, { paddingBottom: tabBarHeight + 32 }]} keyboardShouldPersistTaps="handled">
       <View style={styles.topCard}>
         <View style={styles.topInfo}>
           <TouchableOpacity
             style={styles.logoWrapper}
-            onPress={() => (isPharmacy || isPatient ? pickImage(setLogo) : undefined)}
+            onPress={() => {
+              if (logo) setPhotoPreviewOpen(true);
+              else if (isPharmacy || isPatient) pickImage(setLogo);
+            }}
             activeOpacity={isPharmacy || isPatient ? 0.7 : 1}
           >
             {logo ? (
@@ -320,6 +346,16 @@ export default function ProfileScreen({ navigation }) {
                 <Ionicons name={isPharmacy ? 'business' : 'person-circle'} size={28} color="#2F9E5D" />
               </View>
             )}
+            {isPharmacy || isPatient ? (
+              <TouchableOpacity
+                style={styles.logoEditBadge}
+                onPress={() => pickImage(setLogo)}
+                accessibilityRole="button"
+                accessibilityLabel="Alterar foto do perfil"
+              >
+                <Ionicons name="camera" size={15} color="#FFFFFF" />
+              </TouchableOpacity>
+            ) : null}
           </TouchableOpacity>
           <View style={styles.brandInfo}>
             <Text style={styles.brandTitle}>{name}</Text>
@@ -329,6 +365,14 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
       </View>
+
+      {isPatient ? (
+        <TouchableOpacity style={styles.planBanner} onPress={() => navigation.navigate('Plans')} activeOpacity={0.86} accessibilityRole="button" accessibilityLabel="Ver planos do FarmaBusca">
+          <View style={styles.planIcon}><Ionicons name="sparkles" size={20} color="#166534" /></View>
+          <View style={styles.planCopy}><Text style={styles.planEyebrow}>PLANOS FARMA busca</Text><Text style={styles.planTitle}>Cuide da sua saúde do seu jeito</Text><Text style={styles.planText}>Comece grátis e escolha mais benefícios quando precisar.</Text></View>
+          <Ionicons name="chevron-forward" size={20} color="#166534" />
+        </TouchableOpacity>
+      ) : null}
 
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>{isPharmacy ? 'Informações básicas' : 'Dados pessoais'}</Text>
@@ -381,7 +425,9 @@ export default function ProfileScreen({ navigation }) {
             </View>
 
             <CustomInput label="Distrito" placeholder="Informe o distrito" value={district} onChangeText={setDistrict} />
+            <CustomInput label="Bairro" placeholder="Informe o bairro" value={neighborhood} onChangeText={setNeighborhood} />
             <CustomInput label="Endereço" placeholder="Endereço completo" value={address} onChangeText={setAddress} />
+            <CustomInput label="Ponto de referência" placeholder="Ex.: junto ao mercado" value={locationReference} onChangeText={setLocationReference} />
           </View>
 
           <Modal visible={categoryPickerOpen} transparent animationType="fade" onRequestClose={() => setCategoryPickerOpen(false)}>
@@ -479,9 +525,16 @@ export default function ProfileScreen({ navigation }) {
       ) : null}
 
       <View style={styles.actionsContainer}>
-        <CustomButton title={saving ? 'Salvando...' : isPharmacy ? (pharmacyId ? 'Salvar alterações' : 'Criar perfil da farmácia') : 'Atualizar perfil'} loading={saving} onPress={isPharmacy ? saveProfile : savePatientProfile} />
-        <CustomButton title="Sair" style={styles.logoutButton} onPress={() => logout('Login')} />
+        <CustomButton title={saving ? 'Salvando...' : isPharmacy ? (pharmacyId ? 'Salvar alterações' : 'Criar perfil da farmácia') : 'Atualizar perfil'} loading={saving} icon="save-outline" onPress={isPharmacy ? () => saveProfile() : savePatientProfile} />
+        <CustomButton title="Sair" variant="dangerSecondary" icon="log-out-outline" style={styles.logoutButton} onPress={() => logout('Login')} />
       </View>
+
+      <Modal visible={photoPreviewOpen} transparent animationType="fade" onRequestClose={() => setPhotoPreviewOpen(false)}>
+        <TouchableOpacity style={styles.photoModal} activeOpacity={1} onPress={() => setPhotoPreviewOpen(false)}>
+          <Image source={{ uri: logo }} style={styles.previewImage} resizeMode="contain" />
+          <Text style={styles.photoHint}>Toque para fechar</Text>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 }
@@ -501,6 +554,12 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   topInfo: { flexDirection: 'row', alignItems: 'center' },
+  planBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, marginBottom: 20, borderRadius: 18, backgroundColor: '#DCFCE7', borderWidth: 1, borderColor: '#A7E3B9' },
+  planIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  planCopy: { flex: 1 },
+  planEyebrow: { color: '#166534', fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
+  planTitle: { color: '#10231A', fontSize: 15, fontWeight: '800', marginTop: 2 },
+  planText: { color: '#62706A', fontSize: 12, marginTop: 3 },
   logoWrapper: {
     width: 86,
     height: 86,
@@ -522,6 +581,19 @@ const styles = StyleSheet.create({
     width: 86,
     height: 86,
     borderRadius: 22,
+  },
+  logoEditBadge: {
+    position: 'absolute',
+    right: -5,
+    bottom: -5,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#2F9E5D',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   brandInfo: { flex: 1 },
   brandTitle: { fontSize: 22, fontWeight: '800', color: '#1F2937', marginBottom: 8 },
@@ -609,6 +681,22 @@ const styles = StyleSheet.create({
   statItem: { width: '48%', backgroundColor: '#F5FAF7', borderRadius: 18, padding: 16 },
   statValue: { fontSize: 22, fontWeight: '800', color: '#1F2937' },
   statLabel: { marginTop: 8, color: '#4B5563', fontSize: 13 },
-  actionsContainer: { marginBottom: 24 },
-  logoutButton: { backgroundColor: '#E85D5D', marginTop: 12 },
+  actionsContainer: { marginTop: 4, marginBottom: 24 },
+  logoutButton: { borderWidth: 1, borderColor: '#FDA4AF', marginTop: 12 },
+  photoModal: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  previewImage: {
+    width: '100%',
+    height: '70%',
+  },
+  photoHint: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginTop: 16,
+  },
 });

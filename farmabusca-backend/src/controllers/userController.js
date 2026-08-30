@@ -1,5 +1,13 @@
 const { User, Pharmacy } = require('../models');
 const { uploadImage } = require('../services/cloudinaryService');
+const { sanitizeUser } = require('../utils/authPolicy');
+
+const USER_PROFILE_FIELDS = ['name', 'phone'];
+
+const getProfilePayload = (body = {}) => USER_PROFILE_FIELDS.reduce((payload, field) => {
+  if (body[field] !== undefined) payload[field] = body[field];
+  return payload;
+}, {});
 
 const getImageUrlFromRequest = async (req) => {
   let imageUrl = req.body.image || req.body.imageUrl;
@@ -17,7 +25,10 @@ const getImageUrlFromRequest = async (req) => {
 const getProfile = async (req, res, next) => {
   try {
     const user = await User.findByPk(req.user.id, { include: [Pharmacy] });
-    res.json({ success: true, data: user });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Utilizador não encontrado' });
+    }
+    res.json({ success: true, data: sanitizeUser(user) });
   } catch (error) {
     next(error);
   }
@@ -26,9 +37,21 @@ const getProfile = async (req, res, next) => {
 const updateProfile = async (req, res, next) => {
   try {
     const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Utilizador não encontrado' });
+    }
+
     const image = await getImageUrlFromRequest(req);
-    await user.update({ ...req.body, ...(image ? { image } : {}) });
-    res.json({ success: true, message: 'Perfil atualizado', data: user });
+    await user.update({
+      ...getProfilePayload(req.body),
+      ...(image ? { image } : {}),
+    });
+
+    res.json({
+      success: true,
+      message: 'Perfil atualizado',
+      data: sanitizeUser(user),
+    });
   } catch (error) {
     next(error);
   }

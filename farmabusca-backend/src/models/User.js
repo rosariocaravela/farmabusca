@@ -39,10 +39,24 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  subscriptionPlan: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'free',
+  },
+  subscriptionExpiresAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
   role: {
     type: DataTypes.ENUM('PATIENT', 'PHARMACY', 'ADMIN'),
     allowNull: false,
     defaultValue: 'PATIENT',
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
   },
 }, {
   tableName: 'users',

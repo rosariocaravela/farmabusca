@@ -3,11 +3,16 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import TabIcon from '../components/TabIcon';
 import HomeScreen from '../screens/patient/HomeScreen';
-import SearchMedicineScreen from '../screens/patient/SearchMedicineScreen';
+import SearchMedicineScreen from '../screens/patient/SearchMedicineScreenV2';
+import MedicineFiltersScreen from '../screens/patient/MedicineFiltersScreen';
 import FavoritesScreen from '../screens/patient/FavoritesScreen';
 import ProfileScreen from '../screens/patient/ProfileScreen';
 import MedicineDetailsScreen from '../screens/patient/MedicineDetailsScreen';
-import PharmacyDetailsScreen from '../screens/patient/PharmacyDetailsScreen';
+import PaymentScreen from '../screens/patient/PaymentScreen';
+import AssistantScreen from '../screens/patient/AssistantScreen';
+import PharmaciesScreen from '../screens/patient/PharmaciesScreen';
+import PharmacyMedicinesScreen from '../screens/patient/PharmacyMedicinesScreen';
+import PlansScreen from '../screens/patient/PlansScreen';
 import { colors } from '../theme';
 
 const Tab = createBottomTabNavigator();
@@ -15,13 +20,18 @@ const Stack = createStackNavigator();
 const HomeStack = createStackNavigator();
 const SearchStack = createStackNavigator();
 const FavoritesStack = createStackNavigator();
+const AssistantStack = createStackNavigator();
 
 function PatientSection({ navigator: SectionStack, initialName, initialComponent }) {
   return (
     <SectionStack.Navigator screenOptions={{ headerShown: false }}>
       <SectionStack.Screen name={initialName} component={initialComponent} />
       <SectionStack.Screen name="MedicineDetails" component={MedicineDetailsScreen} />
-      <SectionStack.Screen name="PharmacyDetails" component={PharmacyDetailsScreen} />
+      <SectionStack.Screen name="MedicineFilters" component={MedicineFiltersScreen} />
+      <SectionStack.Screen name="Payment" component={PaymentScreen} />
+      <SectionStack.Screen name="PharmaciesList" component={PharmaciesScreen} />
+      <SectionStack.Screen name="PharmacyMedicines" component={PharmacyMedicinesScreen} />
+      <SectionStack.Screen name="Plans" component={PlansScreen} />
     </SectionStack.Navigator>
   );
 }
@@ -38,6 +48,10 @@ function FavoritesNavigator() {
   return <PatientSection navigator={FavoritesStack} initialName="FavoritesList" initialComponent={FavoritesScreen} />;
 }
 
+function AssistantNavigator() {
+  return <PatientSection navigator={AssistantStack} initialName="AssistantList" initialComponent={AssistantScreen} />;
+}
+
 function PatientTabs() {
   return (
     <Tab.Navigator
@@ -48,6 +62,7 @@ function PatientTabs() {
           if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
           else if (route.name === 'Pesquisar') iconName = focused ? 'search' : 'search-outline';
           else if (route.name === 'Favoritos') iconName = focused ? 'heart' : 'heart-outline';
+          else if (route.name === 'Assistente') iconName = focused ? 'sparkles' : 'sparkles-outline';
           else if (route.name === 'Perfil') iconName = focused ? 'person' : 'person-outline';
           return <TabIcon name={iconName} focused={focused} color={color} />;
         },
@@ -60,6 +75,7 @@ function PatientTabs() {
       <Tab.Screen name="Home" component={HomeNavigator} options={{ title: 'Início' }} />
       <Tab.Screen name="Pesquisar" component={SearchNavigator} />
       <Tab.Screen name="Favoritos" component={FavoritesNavigator} />
+      <Tab.Screen name="Assistente" component={AssistantNavigator} />
       <Tab.Screen name="Perfil" component={ProfileScreen} />
     </Tab.Navigator>
   );
