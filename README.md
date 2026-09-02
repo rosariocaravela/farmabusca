@@ -1,58 +1,86 @@
-Farmabusca — Resumo do Projeto
+# FarmaBusca
 
-Descrição
+> Aplicação mobile que aproxima pacientes e farmácias, facilitando a pesquisa de medicamentos e a gestão da sua disponibilidade.
 
-- Farmabusca é um sistema de busca e gestão de farmácias e medicamentos composto por um backend (Node.js + Express + Sequelize/Postgres) e um frontend móvel (React Native + Expo).
-- Objetivo: permitir que pacientes encontrem medicamentos e farmácias, e que farmácias gerenciem seu catálogo e enviem documentos para aprovação.
+![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=nodedotjs&logoColor=white)
+![React Native](https://img.shields.io/badge/React_Native-Expo-61DAFB?logo=react&logoColor=black)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Sequelize-4169E1?logo=postgresql&logoColor=white)
+![Status](https://img.shields.io/badge/status-MVP_em_evolução-f59e0b)
 
-Arquitetura e stack
+## Sobre o projeto
 
-- Backend: Node.js, Express, Sequelize (Postgres), Cloudinary (upload de imagens/documentos), JWT para autenticação.
-- Frontend: React Native (Expo), react-navigation, axios para API, AsyncStorage para sessão, react-hook-form para formulários.
+O **FarmaBusca** é um sistema full-stack criado para ajudar pacientes a encontrar medicamentos e farmácias. A solução também permite que as farmácias submetam documentos para aprovação e façam a gestão do seu catálogo.
 
-Pontos principais implementados
+O projeto nasceu de um problema prático: a dificuldade de saber rapidamente onde um medicamento está disponível.
 
-- Registro com seleção de tipo de conta (Paciente / Farmácia / Administrador).
-- Fluxo de cadastro para `PHARMACY` em dois passos: perfil básico (Nível 1) e upload de documentos (Nível 2).
-- Upload multipart (documentos + imagem) armazenados no Cloudinary; metadados guardados no campo `documents` da farmácia.
-- Workflow de aprovação por administradores; criação automática de administrador via variáveis de ambiente no momento do sync do banco.
-- Painel da farmácia para listar/gerir medicamentos, com regras de permissão para que farmácias só alterem seus próprios itens.
-- Esboço de perfil adicional para o Ministério da Saúde com acesso a dados agregados, como número de farmácias por província, medicamentos essenciais em falta e mapas de disponibilidade.
+## Funcionalidades implementadas
 
-Perfil do Ministério da Saúde
+- Registo e autenticação com JWT.
+- Perfis de **Paciente**, **Farmácia** e **Administrador**.
+- Pesquisa e listagem de medicamentos e farmácias.
+- Favoritos para pacientes autenticados.
+- Cadastro de farmácias em duas etapas.
+- Upload de imagens e documentos através do Cloudinary.
+- Aprovação de farmácias por um administrador.
+- Gestão de medicamentos com controlo de permissões por farmácia.
+- Documentação básica da API com Swagger.
 
-- Acesso apenas a informações agregadas e relatórios, sem dados sensíveis de pacientes ou farmácias individuais.
-- Funcionalidades esperadas:
-  - Aprovação de farmácias.
-  - Número de farmácias por província.
-  - Medicamentos essenciais em falta.
-  - Mapa de distribuição das farmácias.
-  - Estatísticas de disponibilidade de medicamentos.
-  - Relatórios mensais de atividade.
-  - Tendências de procura por medicamentos.
+## Arquitetura
 
-Instruções de setup (rápido)
+```mermaid
+flowchart LR
+    A[Aplicação Expo] -->|REST / JSON| B[API Express]
+    B --> C[(PostgreSQL)]
+    B --> D[Cloudinary]
+```
 
-1) Backend
+| Camada | Tecnologias |
+|---|---|
+| Mobile | React Native, Expo, React Navigation, Axios |
+| Backend | Node.js, Express, JWT, Express Validator |
+| Dados | PostgreSQL, Sequelize |
+| Ficheiros | Multer, Cloudinary |
 
-- Instalar dependências e configurar `.env` (exemplo já presente em `farmabusca-backend/.env`):
-  - `PORT`, `JWT_SECRET`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
-  - ADMIN_* (opcional) para criar conta admin na primeira execução: `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`, `ADMIN_PHONE`.
-  - Cloudinary: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.
+## Estrutura do repositório
 
-- Comandos:
+```text
+farmabusca/
+├── farmabusca-backend/    # API REST e acesso à base de dados
+├── farmabusca-frontend/   # Aplicação React Native/Expo
+└── README.md
+```
+
+## Executar localmente
+
+### 1. Backend
+
+Crie um ficheiro `.env` em `farmabusca-backend/` com as variáveis necessárias:
+
+```env
+PORT=5000
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=farmabusca
+DB_USER=postgres
+DB_PASSWORD=altere_esta_senha
+DB_SSL=false
+JWT_SECRET=altere_esta_chave
+CLOUDINARY_CLOUD_NAME=seu_cloud_name
+CLOUDINARY_API_KEY=sua_api_key
+CLOUDINARY_API_SECRET=sua_api_secret
+```
+
+Depois execute:
 
 ```bash
 cd farmabusca-backend
 npm install
-npm run dev    # ou npm start conforme script
+npm run dev
 ```
 
-2) Frontend (Expo)
+A documentação Swagger fica disponível em `http://localhost:5000/api-docs`.
 
-- Ajuste `BACKEND_URL` em `app.json`/`Constants.extra` ou atualize `defaultBackend` em `src/services/api.js` para apontar para seu servidor local.
-
-- Instalar dependências e iniciar Expo:
+### 2. Aplicação mobile
 
 ```bash
 cd farmabusca-frontend
@@ -60,21 +88,16 @@ npm install
 npx expo start -c
 ```
 
-Notas e troubleshooting
+Configure o endereço da API em `app.json` antes de testar num dispositivo físico.
 
-- Uploads multipart: o cliente envia `FormData`; o backend usa `multer` e envia para Cloudinary. Se o upload falhar, reinicie o Expo com cache limpo (`npx expo start -c`) e verifique os logs do backend.
-- Tokens/sessões: o frontend salva sessão em AsyncStorage (`farmabusca-auth`); faça `logout` e limpe storage se trocar de conta durante testes.
-- Quando as farmácias aparecem com medicamentos de outra conta: revisar no backend as queries que filtram por `pharmacyId` e verificar `req.user.id` nas rotas protegidas. Para depuração, adicionar logs em `medicineController` nas rotas que criam/retornam medicamentos.
+## Próximos passos
 
-Arquivos relevantes
+- Adicionar testes automatizados para os fluxos críticos.
+- Concluir testes ponta a ponta do cadastro e aprovação de farmácias.
+- Melhorar validações e mensagens de erro nos uploads.
+- Criar relatórios agregados sobre disponibilidade de medicamentos.
 
-- Backend: `farmabusca-backend/src/controllers/*`, `farmabusca-backend/src/routes/*`, `farmabusca-backend/src/models/*`.
-- Frontend: `farmabusca-frontend/src/navigation/*`, `farmabusca-frontend/src/screens/*`, `farmabusca-frontend/src/services/api.js`, `farmabusca-frontend/src/context/AuthContext.js`.
+## Autor
 
-Próximos passos sugeridos
+Desenvolvido por [Rosário Pompilio Caravela](https://github.com/rosariocaravela), estudante de Engenharia Informática em Maputo, Moçambique.
 
-- Testes end-to-end do fluxo de registro PHARMACY -> Nível1 -> Nível2 -> envio de documentos -> aprovação pelo admin.
-- Harden validations (tamanho/tipo de documentos), exibir status de upload e progresso.
-- Adicionar testes automatizados básicos para as APIs críticas.
-
-Se quiser, eu atualizo o README adicionando comandos específicos do seu ambiente Windows (ex.: criar DB local) ou insiro um trecho com exemplos de requests cURL para testes rápidos.
